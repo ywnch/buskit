@@ -13,7 +13,7 @@ Instructor: Joseph Chow
 
 ## Workflow
 
-1. Facilitate a data collection pipeline from NYC MTA bus real-time data ((Previous work)[https://github.com/BUILTNYU/Monitoring-Bus-Arrivals-for-Headway-Control-Strategies] by Elsa Kong)
+1. Facilitate a data collection pipeline from NYC MTA bus real-time data ([Previous work](https://github.com/BUILTNYU/Monitoring-Bus-Arrivals-for-Headway-Control-Strategies) by Elsa Kong)
 2. Construct a simulation environment in python
-3. Implement a BB (mitigation strategy)[https://www.sciencedirect.com/science/article/pii/S1568494616303118]
+3. Implement a [BB mitigation strategy](https://www.sciencedirect.com/science/article/pii/S1568494616303118)
 4. Evaluate the performance
