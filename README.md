@@ -17,3 +17,9 @@ Instructor: Joseph Chow
 2. Construct a simulation environment in python
 3. Implement a [BB mitigation strategy](https://www.sciencedirect.com/science/article/pii/S1568494616303118)
 4. Evaluate the performance
+
+## Updates
+
+[180317]
+- Upload current sandbox
+- Upload fetchbus.py script that generates real-time bus data
