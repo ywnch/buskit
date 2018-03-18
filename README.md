@@ -23,3 +23,12 @@ Instructor: Joseph Chow
 [180317]
 - Upload current sandbox
 - Upload fetchbus.py script that generates real-time bus data
+
+[180318]
+
+- Update current sandbox
+- Create light sandbox, currently developing route data query pipeline
+- Update fetchbus.py script:
+  - fix bugs
+  - add `plot_tsd` function that plots time-space diagram of a given data
+- Upload another sample historical AVL data

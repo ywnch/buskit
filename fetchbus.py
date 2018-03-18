@@ -20,6 +20,7 @@ import json
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 import time
 import calendar
@@ -30,11 +31,7 @@ try:
 except ImportError:
     import urllib.request as urllib
 
-# check input args
-if not len(sys.argv) == 5:
-    print ("Invalid number of arguments. Run as: python show_bus_locations_ywc249.py <MTA_KEY> <BUS_LINE>")
-    sys.exit()
-
+# function for fetching bus data
 def bus_data(apikey, route, direction=0, duration=5):
     """
     Fetch MTA real-time bus location data for specified route and direction
@@ -133,7 +130,46 @@ def bus_data(apikey, route, direction=0, duration=5):
             time.sleep(30)
         else:
             return(df)
-            break
 
-# read args and fetch data
-df = bus_data(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+# function for plotting time-space diagram
+def plot_tsd(df, start_min=None, end_min=None):
+    """
+    Plot the time-space diagram for a given dataframe containing
+    real-time MTA bus data (as generated from fetchbus.py)
+
+    ARGUMENTS
+    ----------
+    df: input dataframe containing required columns for plotting time-space diagram
+    start_min: plot from this given minute (time elapsed)
+    end_min: plot until this given minute (time elapsed)
+    
+    RETURN
+    ----------
+    - fig
+    - ax
+    """
+    try:
+        s = start_min * 2 # * 60 sec / 30 sec interval
+        e = end_min * 2
+    except:
+        s = start_min
+        e = end_min
+    
+    fig = plt.figure(figsize=(12,8))
+    ax = fig.add_subplot(111)
+    for i, v in enumerate(df['VehicleRef'].unique()):
+        veh_df = df[df['VehicleRef'] == v]
+        veh_df = veh_df.iloc[s:e,:]
+        ax.plot(np.arange(0,len(veh_df)*30,30), veh_df['VehDistAlongRoute'], marker='.')
+        ax.annotate('%s'%v, (0,list(veh_df['VehDistAlongRoute'])[0]))
+    
+    return(fig, ax)
+
+# check input args
+if __name__ == '__main__':
+    if not len(sys.argv) == 5:
+        print ("Invalid number of arguments. Run as: python show_bus_locations_ywc249.py <MTA_KEY> <BUS_LINE>")
+        sys.exit()
+
+    # read args and fetch data
+    df = bus_data(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
