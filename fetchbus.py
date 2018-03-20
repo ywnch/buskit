@@ -76,7 +76,7 @@ def bus_data(apikey, route, direction=0, duration=5):
         except:
             error = data['Siri']['ServiceDelivery']['VehicleMonitoringDelivery'][0]['ErrorCondition']
             print(error['Description'])
-        #     sys.exit()
+            sys.exit()
 
         # parse route info: line number, active vehicles
         print("Time Elapsed: " + str(t_elapsed/60) + " min(s)")
