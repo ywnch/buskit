@@ -90,9 +90,12 @@ def bus_data(apikey, route, direction=0, duration=5):
         stop = []
         status = []
         vdars = []
+        tiempos = []
 
         # parse vehicle info: location (lat, long)
         for i, v in enumerate(data2):
+            # parse time
+            tiempo = v['RecordedAtTime']
             # parse location
             vr = v['MonitoredVehicleJourney']['VehicleRef'].split("_")[1]
             lt = v['MonitoredVehicleJourney']['VehicleLocation']['Latitude']
@@ -115,13 +118,15 @@ def bus_data(apikey, route, direction=0, duration=5):
             status.append(stt)
             stop.append(stp)
             vdars.append(vdar)
+            tiempos.append(tiempo)
 
             # print info
             print("Bus %s (#%s) is at latitude %s and longitude %s"%(i+1, vr, lt, lg))
 
         # write data to dictionary, indexing from 1
         d = {'VehicleRef': vrf, 'Latitude': lat, 'Longitude': lng,
-             'StopName': stop, 'StopStatus': status, 'VehDistAlongRoute': vdars}
+             'StopName': stop, 'StopStatus': status, 'VehDistAlongRoute': vdars,
+             'RecordedAtTime': tiempos}
         df = pd.concat([df, pd.DataFrame(data=d)])        
         df.to_csv(filename)
         
@@ -132,22 +137,26 @@ def bus_data(apikey, route, direction=0, duration=5):
             return(df)
 
 # function for plotting time-space diagram
-def plot_tsd(df, start_min=None, end_min=None):
+def plot_tsd(df, start_min=None, end_min=None, save=False, fname='TSD'):
     """
     Plot the time-space diagram for a given dataframe containing
     real-time MTA bus data (as generated from fetchbus.py)
-
+    
     ARGUMENTS
     ----------
     df: input dataframe containing required columns for plotting time-space diagram
     start_min: plot from this given minute (time elapsed)
     end_min: plot until this given minute (time elapsed)
+    save: save TSD to .png at current directory
+    fname: assign a filename for saved TSD (otherwise may be overwritten)
     
     RETURN
     ----------
     - fig
     - ax
+    - a saved TSD .png file (optional)
     """
+    # determine time interval to be plotted
     try:
         s = start_min * 2 # * 60 sec / 30 sec interval
         e = end_min * 2
@@ -155,13 +164,30 @@ def plot_tsd(df, start_min=None, end_min=None):
         s = start_min
         e = end_min
     
+    # convert time format
+    df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime'])
+
+    # plot
     fig = plt.figure(figsize=(12,8))
     ax = fig.add_subplot(111)
+    
     for i, v in enumerate(df['VehicleRef'].unique()):
         veh_df = df[df['VehicleRef'] == v]
         veh_df = veh_df.iloc[s:e,:]
-        ax.plot(np.arange(0,len(veh_df)*30,30), veh_df['VehDistAlongRoute'], marker='.')
-        ax.annotate('%s'%v, (0,list(veh_df['VehDistAlongRoute'])[0]))
+        
+        ax.plot(veh_df['RecordedAtTime'], veh_df['VehDistAlongRoute'], marker='.')
+        ax.annotate('%s'%v, (list(veh_df['RecordedAtTime'])[0],list(veh_df['VehDistAlongRoute'])[0]))
+        
+        ax.set_xlabel("time (sec)", fontsize=14)
+        ax.set_ylabel("distance along route (m)", fontsize=14)
+        ax.set_title("Time-space Diagram", fontsize=18)
+    
+    plt.tight_layout()
+    if save:
+        plt.savefig("%s.png"%(fname), dpi=300)
+    else:
+        pass
+    plt.show()
     
     return(fig, ax)
 

@@ -18,6 +18,12 @@ Instructor: Joseph Chow
 3. Implement a [BB mitigation strategy](https://www.sciencedirect.com/science/article/pii/S1568494616303118)
 4. Evaluate the performance
 
+## Current Output
+
+1. Currently, we may use the `bus_data` function to fetch data of a specified route and direction at a given time window and then plot the time-space diagram with the `plot_tsd` function, both functions can be found in `fetchbus.py`. Below is a sample time-space diagram. (the x-axis is plot by recorded time instead, not time elapsed as shown here)
+
+![Sample Time-space Diagram](TSD.png)
+
 ## Updates
 
 [180317]
@@ -32,3 +38,9 @@ Instructor: Joseph Chow
   - fix bugs
   - add `plot_tsd` function that plots time-space diagram of a given data
 - Upload another sample historical AVL data
+
+[180320]
+
+- Update fetchbus.py script:
+  - fix major plotting error
+  - update plotting details
