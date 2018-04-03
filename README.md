@@ -89,3 +89,10 @@ plot_tsd(df, start_min=1, end_min=3, save=True, fname='TSD')
 - Update fetchbus.py script:
   - fix major plotting error
   - update plotting details
+
+[180403] Data download part pretty much settled
+
+- Update fetchbus.py script:
+  - the function now stores every variable retrieved from MTA SIRI version 1 for each vehicle trajectory
+  - modified naming convention of the file
+- Update a new example file
