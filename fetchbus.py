@@ -117,7 +117,7 @@ def bus_data(apikey, route, duration=5):
         for i, v in enumerate(data2):
             dict1 = flatten(v['MonitoredVehicleJourney'])
             dict1['RecordedAtTime'] = v['RecordedAtTime']
-            dict1['SituationSimpleRef'] = dict1['SituationRef'][0]['SituationSimpleRef']
+            #dict1['SituationSimpleRef'] = dict1['SituationRef'][0]['SituationSimpleRef']
             dict1.pop('SituationRef')
             dict1.pop('OnwardCall')
             
