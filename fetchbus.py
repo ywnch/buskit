@@ -115,22 +115,30 @@ def bus_data(apikey, route, duration=5):
 
         # parse the data of each active vehicle
         for i, v in enumerate(data2):
-            dict1 = flatten(v['MonitoredVehicleJourney'])
-            dict1['RecordedAtTime'] = v['RecordedAtTime']
-            #dict1['SituationSimpleRef'] = dict1['SituationRef'][0]['SituationSimpleRef']
-            dict1.pop('SituationRef')
-            dict1.pop('OnwardCall')
-            
-            # print info of the vehicle
-            print("Bus %s (#%s) is at latitude %s and longitude %s"%(i+1, dict1['VehicleRef'], dict1['Latitude'], dict1['Longitude']))
+            #if 'OnwardCall' in v['MonitoredVehicleJourney']['OnwardCalls']:
+            try:
+                # map variables
+                dict1 = flatten(v['MonitoredVehicleJourney'])
+                dict1['RecordedAtTime'] = v['RecordedAtTime']
+                #dict1['SituationSimpleRef'] = dict1['SituationRef'][0]['SituationSimpleRef']
+                dict1.pop('SituationRef')
+                dict1.pop('OnwardCall')
 
-            # write data to dictionary
-            df = pd.concat([df, pd.DataFrame(dict1, index=[i])])
+                # print info of the vehicle
+                print("Bus %s (#%s) is at latitude %s and longitude %s"%(i+1, dict1['VehicleRef'], dict1['Latitude'], dict1['Longitude']))
+
+                # write data to dictionary
+                df = pd.concat([df, pd.DataFrame(dict1, index=[i])])
         
+            except:
+                e = sys.exc_info()[0]
+                print("Error: %s"%e)
+
         # write/update data to csv
         df.to_csv(filename)
 
         # check and update timer
+        #UPDATE THIS TO WHILE LOOP
         if t_elapsed < duration:
             t_elapsed += 30
             time.sleep(30)
