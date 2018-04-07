@@ -143,18 +143,19 @@ def bus_data(apikey, route, duration=5):
             t_elapsed += 30
             time.sleep(30)
         else:
-            return(df)
+            return df
 
 # function for plotting time-space diagram
-def plot_tsd(df, start_min=None, end_min=None, save=False, fname='TSD'):
+def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD'):
     """
     Plot the time-space diagram for a given dataframe containing
     real-time MTA bus data (as generated from fetchbus.py)
-
     PARAMETERS
     ----------
     df: pd.DataFrame
         Input dataframe containing required columns for plotting time-space diagram.
+    dir_ref: integer (0 or 1)
+        The direction to be plotted.
     start_min: numeric
         Plot from this given minute (time elapsed).
     end_min: numeric
@@ -179,6 +180,9 @@ def plot_tsd(df, start_min=None, end_min=None, save=False, fname='TSD'):
         s = start_min
         e = end_min
     
+    # subset df for given direction
+    df = df[df['DirectionRef'] == dir_ref]
+    
     # convert time format
     df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime'])
 
@@ -195,6 +199,9 @@ def plot_tsd(df, start_min=None, end_min=None, save=False, fname='TSD'):
         veh_df = df[df['VehicleRef'] == v]
         # subset within specified time window
         veh_df = veh_df.iloc[s:e,:]
+        
+        # plot CallDistanceAlongRoute (bus stops)
+        [ax.plot([df['RecordedAtTime'].min(), df['RecordedAtTime'].max()], [i, i], color='gray', alpha=0.1) for i in df['CallDistanceAlongRoute'].unique()]
         
         ax.plot(veh_df['RecordedAtTime'], veh_df['VehDistAlongRoute'], marker='.')
         ax.annotate('%s'%v.split("_")[1], (list(veh_df['RecordedAtTime'])[0],list(veh_df['VehDistAlongRoute'])[0]))
@@ -213,7 +220,7 @@ def plot_tsd(df, start_min=None, end_min=None, save=False, fname='TSD'):
         pass
     plt.show()
     
-    return(fig, ax)
+    return fig, ax
 
 # check input args
 if __name__ == '__main__':

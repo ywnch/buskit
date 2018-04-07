@@ -26,8 +26,8 @@ Import the functions and simply plot the dataframe as downloaded using `bus_data
 from fetchbus import plot_tsd
 # read the downloaded data
 df = pd.read_csv("B54-Tue-180403-170417-5.csv")
-# plot df starting from minute 1 to minute 3 and save it as TSD.png
-plot_tsd(df, start_min=1, end_min=3, save=True, fname='TSD')
+# plot bus direction 1 in df starting from minute 1 to minute 3 and save it as TSD.png
+plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
 ```
 
 ## Objectives
@@ -96,3 +96,11 @@ plot_tsd(df, start_min=1, end_min=3, save=True, fname='TSD')
   - the function now stores every variable retrieved from MTA SIRI version 1 for each vehicle trajectory
   - modified naming convention of the file
 - Update a new example file
+
+[180407]
+
+- Update fetchbus.py script:
+  - update `plot_tsd` function according to new data format
+  - now includes direction specification
+  - now includes stops along the route in grey lines
+- Updated GTFS route shape query workflow (only Manhattan data is up to date for now) in [viz sandbox](https://github.com/ywnch/BusSimulator/blob/master/sandbox_visualization.ipynb)
