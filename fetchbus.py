@@ -1,10 +1,10 @@
 # Author: Yuwen Chang, NYU CUSP
-# Last Updated: 2018/04/03
+# Last Updated: 2018/04/09
 ##############################
 # Code written for Bus Simulator
 # https://github.com/ywnch/BusSimulator
 ##############################
-# put MTA API key, bus route, bus direction, and duration as input arguments:
+# put MTA API key, bus route, and duration as input arguments:
 # i.e. run the code as:
 # 	python fetchbus.py <MTA_KEY> <BUS_LINE> <DURATION>
 ##############################
@@ -138,7 +138,7 @@ def bus_data(apikey, route, duration=5):
         df.to_csv(filename)
 
         # check and update timer
-        #UPDATE THIS TO WHILE LOOP
+        #UPDATE THIS TO WHILE LOOP IN FUTURE VERSION
         if t_elapsed < duration:
             t_elapsed += 30
             time.sleep(30)
