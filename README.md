@@ -4,7 +4,7 @@
 
 Author: Yuwen Chang (M.S. at NYU CUSP 2018)
 
-Instructor: Joseph Chow
+Instructor: Prof. Joseph Chow
 
 ## Currently Available Functions
 
@@ -103,4 +103,8 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
   - update `plot_tsd` function according to new data format
   - now includes direction specification
   - now includes stops along the route in grey lines
-- Updated GTFS route shape query workflow (only Manhattan data is up to date for now) in [viz sandbox](https://github.com/ywnch/BusSimulator/blob/master/sandbox_visualization.ipynb)
+- Updated GTFS route shape query workflow (only Manhattan data is up to date for now) in [viz sandbox](https://github.com/ywnch/BusSimulator/blob/master/sandbox_monitor.ipynb)
+
+[180422]
+
+- Create first simulation with Bus Class
