@@ -49,6 +49,14 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
 
 ![Sample Time-space Diagram](TSD.png)
 
+2. We may also use a conceptual dashboard to monitor real-time bus trajectories.
+
+![Sample Time-space Diagram](dashboard_v1.png)
+
+3. A prototype simulator that treat Bus and Stop as objects is also available
+
+![Sample Time-space Diagram](simulator_v1.png)
+
 ## References
 
 - Andres, M., & Nair, R. (2017). A predictive-control framework toaddress bus bunching. *Transportation Research Part B: Methodological*, *104*,123-148.
@@ -108,3 +116,14 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
 [180422]
 
 - Create first simulation with Bus Class
+
+[180423]
+
+- Create Stop Class: simulator prototype now operable with artificial data
+  - Includes pax arrival function
+  - Now updates dwelling time based on pax at each stop
+- Update [main sandbox](https://github.com/ywnch/BusSimulator/blob/master/sandbox_main.ipynb)
+  - The flow is now streamlined up to current accomplishment across different pieces
+  - A combined display of TSD and vehicle location is available with pseudo-real-time data (fed with pre-downloaded data)
+  - The display provides BB identification
+  - `CAVEAT:` currently, the plots are animated by overlaying new plots, thus the display can get very slow as the plots accumulate
