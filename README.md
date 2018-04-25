@@ -51,7 +51,7 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
 
 2. We may also use a conceptual dashboard to monitor real-time bus trajectories.
 
-![Sample Time-space Diagram](dashboard_v1.png)
+![Sample Time-space Diagram](dashboard_v2.png)
 
 3. A prototype simulator that treat Bus and Stop as objects is also available
 
@@ -108,6 +108,12 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
   - The display provides BB identification
   - `CAVEAT:` currently, the plots are animated by overlaying new plots, thus the display can get very slow as the plots accumulate
   - Includes Google Map plotting block using `gmap` (Unavailable in JupyterLab)
+
+[180425]
+
+- Update main sandbox
+  - Add route shapefile display with vehicle locations
+  - Now available for both historical and real-time data feeds
 
 ## References
 
