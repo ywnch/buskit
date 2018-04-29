@@ -1,12 +1,22 @@
-# Bus Simulator for Bus Bunching Mitigation
+# Bus Analytics Toolkit for Bunching Mitigation
 
-## A simple bus simulation environment for bus bunching analysis in New York City
+## A easy-to-use python toolkit for bus analytics and simulation with real-time, historical, and artificial bus trajectory data
 
 Author: Yuwen Chang (M.S. at NYU CUSP 2018)
 
 Instructor: Prof. Joseph Chow
 
-## Currently Available Functions
+## Motivation
+
+- How can we easily analyze bus trajectories and activities? How can we mitigate bus bunching? How do we know the effects of operational strategies such as holding or skipping on the services and passengers?
+- While data is widely available, there is no single, open-source, and easy-to-use tool that let us monitor and analyze bus activity. This python toolkit aims to make the analysis pipeline both simple and flexible, with tasks ranging from monitoring real-time activities, fetching data for historical analysis, to simulating operation strategies to mitigate bus bunching.
+- The dashboard and simulator can make use of real-time, historical as well as artificial data smoothly and can be easily applied to any city as long as they share the same data standards (GTFS, SIRI).
+- The monitoring dashboard allows riders to spot unstable services in advance and operators to easily identify bunching scenarios. The simulation tool allows involved parties to try different bus control strategies to mitigate unreliable headways.
+- To make the toolkit more accessible, a well-designed user interface is to be developed. The prototype simulator is still under development and will benefit from more specification and controls as well.
+
+![project structure](str.png)<!-- .element height="50%" width="50%" -->
+
+## Data Fetching Functions
 
 ### bus_data: Get bus data
 
@@ -51,11 +61,19 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
 
 2. We may also use a conceptual dashboard to monitor real-time bus trajectories.
 
-![Sample Time-space Diagram](dashboard_v2.png)
+![Sample Time-space Diagram](dashboard_v3.png)
 
 3. A prototype simulator that treat Bus and Stop as objects is also available
 
-![Sample Time-space Diagram](simulator_v1.png)
+![Sample Time-space Diagram](simulator_v2.png)
+
+4. One of the benefits of objects is that we can record activities and events in a single bus or stop and examine the log easily, for example:
+
+![Headway at a Specific Stop](dash_hw.png)
+
+![Pax Wait Time at a Specific Stop](sim_pwt.png)
+
+![Trajectories of a Specific Bus](sim_tsd.png)
 
 ## Updates
 
@@ -114,6 +132,11 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
 - Update main sandbox
   - Add route shapefile display with vehicle locations
   - Now available for both historical and real-time data feeds
+
+[180429]
+
+- Major updates after the Tandon Research Expo
+- Temporarily wrapped some functions in `demo.py` to facilitate demonstration process
 
 ## References
 
