@@ -6,7 +6,7 @@
 ##############################
 # put MTA API key, bus route, and duration as input arguments:
 # i.e. run the code as:
-# 	python fetchbus.py <MTA_KEY> <BUS_LINE> <DURATION>
+# 	python busdata.py <MTA_KEY> <BUS_LINE> <DURATION>
 ##############################
 
 # initialize
@@ -93,7 +93,7 @@ def stream_bus(apikey, route, duration=5):
     df = pd.DataFrame() # empty dataframe
     
     # main block for fetching data
-    while t_elapsed < duration:
+    while t_elapsed <= duration:
         # fetch data through MTA API
         response = urllib.urlopen(url)
         data = response.read().decode("utf-8")
@@ -139,9 +139,12 @@ def stream_bus(apikey, route, duration=5):
         # write/update data to csv
         df.to_csv(filename)
 
-        # check and update timer
+        # sleep and update timer
+        if t_elapsed < duration:
+            time.sleep(30)
+            
         t_elapsed += 30
-        time.sleep(30)
+
     return df
 
 # function for splitting multiple trips of same vehicles
@@ -287,7 +290,7 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
 # check input args
 if __name__ == '__main__':
     if not len(sys.argv) == 4:
-        print ("Invalid number of arguments. Run as: python fetchbus.py <MTA_KEY> <BUS_LINE> <DURATION>")
+        print ("Invalid number of arguments. Run as: python busdata.py <MTA_KEY> <BUS_LINE> <DURATION>")
         sys.exit()
 
     # read args and fetch data
