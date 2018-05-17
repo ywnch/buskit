@@ -272,9 +272,11 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
         ax.annotate('%s'%v.split("_")[1], (list(veh_df['RecordedAtTime'])[0],list(veh_df['VehDistAlongRoute'])[0]))
         
     ax.grid()
-    ax.set_xlabel("time", fontsize=14)
-    ax.set_ylabel("distance along route (m)", fontsize=14)
-    ax.set_title("Time-space Diagram", fontsize=18)
+    ax.set_xlabel("Time", fontsize=14)
+    ax.set_ylabel("Distance along route (meter)", fontsize=14)
+    ax.set_title("Time-space Diagram of Bus %s (direction: %s) from %s to %s"%(
+                 df['PublishedLineName'].unique()[0], df['DirectionRef'].unique()[0],
+                 str(s.time())[:-3], str(e.time())[:-3]), fontsize=18)
     
     plt.tight_layout()
     

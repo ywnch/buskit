@@ -1,6 +1,6 @@
 # Bus Analytics Toolkit for Bunching Mitigation
 
-## A easy-to-use python toolkit for bus analytics and simulation with real-time, historical, and artificial bus trajectory data
+## A ready-to-use python toolkit for bus data streaming, analytics, and simulation with real-time, historical, and artificial bus trajectory data
 
 Author: Yuwen Chang (M.S. at NYU CUSP 2018)
 
@@ -8,17 +8,25 @@ Instructor: Prof. Joseph Chow
 
 ## Motivation
 
+**
+
+- Simple and generalized data pipeline
+- Simple and flexible simulation environment
+- Scalable to other cities given GTFS and SIRI
+
+**
+
 - How can we easily analyze bus trajectories and activities? How can we mitigate bus bunching? How do we know the effects of operational strategies such as holding or skipping on the services and passengers?
 - While data is widely available, there is no single, open-source, and easy-to-use tool that let us monitor and analyze bus activity. This python toolkit aims to make the analysis pipeline both simple and flexible, with tasks ranging from monitoring real-time activities, fetching data for historical analysis, to simulating operation strategies to mitigate bus bunching.
 - The dashboard and simulator can make use of real-time, historical as well as artificial data smoothly and can be easily applied to any city as long as they share the same data standards (GTFS, SIRI).
 - The monitoring dashboard allows riders to spot unstable services in advance and operators to easily identify bunching scenarios. The simulation tool allows involved parties to try different bus control strategies to mitigate unreliable headways.
 - To make the toolkit more accessible, a well-designed user interface is to be developed. The prototype simulator is still under development and will benefit from more specification and controls as well.
 
-![project structure](str.png)<!-- .element height="50%" width="50%" -->
+![project structure](figtab/str.png)<!-- .element height="50%" width="50%" -->
 
-## Data Fetching Functions
+## Data Streaming Functions
 
-### bus_data: Get bus data
+### stream_bus: Get bus data
 
 Manually download the [script](https://github.com/ywnch/BusSimulator/blob/master/fetchbus.py) or clone the repo and import the functions to your Jupyter notebook or run it on command lines as the example below:
 
@@ -26,6 +34,15 @@ Manually download the [script](https://github.com/ywnch/BusSimulator/blob/master
 git clone https://github.com/ywnch/BusSimulator.git
 # fetch bus data for route B54 for 1 minute (once per 30 secs)
 python fetchbus.py $MTAAPIKEY "B54" 1
+# SBS lineref example: "S79%2B", which would be interpreted as "S79+"
+```
+
+### split_trips: Split different trips made by same vehicles
+
+```python
+# new vehicle reference number will have a trip no. suffix
+df = split_trips(df)
+df["NewVehicleRef"]
 ```
 
 ### plot_tsd: Plot time-space diagram
@@ -35,9 +52,9 @@ Import the functions and simply plot the dataframe as downloaded using `bus_data
 ```python
 from fetchbus import plot_tsd
 # read the downloaded data
-df = pd.read_csv("B54-Tue-180403-170417-5.csv")
-# plot bus direction 1 in df starting from minute 1 to minute 3 and save it as TSD.png
-plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
+df = pd.read_csv("B54-180403-170417-5-Tue.csv")
+# plot bus direction 1 in df starting from minute 10 to minute 30 and save it as TSD.png
+plot_tsd(df, dir_ref=1, start_min=10, end_min=30, save=True, fname='TSD')
 ```
 
 ## Objectives
@@ -57,23 +74,23 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
 
 1. Currently, we may use the `bus_data` function to fetch data of a specified route and direction at a given time window and then plot the time-space diagram with the `plot_tsd` function, both functions can be found in `fetchbus.py`. Below is a sample time-space diagram. (the x-axis is plot by recorded time instead, not time elapsed as shown here)
 
-![Sample Time-space Diagram](TSD_v1.png)
+![Sample Time-space Diagram](figtab/TSD_v2.png)
 
 2. We may also use a conceptual dashboard to monitor real-time bus trajectories.
 
-![Sample Time-space Diagram](dashboard_v3.png)
+![Sample Time-space Diagram](figtab/dashboard_v3.png)
 
 3. A prototype simulator that treat Bus and Stop as objects is also available
 
-![Sample Time-space Diagram](simulator_v2.png)
+![Sample Time-space Diagram](figtab/simulator_v2.png)
 
 4. One of the benefits of objects is that we can record activities and events in a single bus or stop and examine the log easily, for example:
 
-![Headway at a Specific Stop](dash_hw.png)
+![Headway at a Specific Stop](figtab/dash_hw.png)
 
-![Pax Wait Time at a Specific Stop](sim_pwt.png)
+![Pax Wait Time at a Specific Stop](figtab/sim_pwt.png)
 
-![Trajectories of a Specific Bus](sim_tsd.png)
+![Trajectories of a Specific Bus](figtab/sim_tsd.png)
 
 ## Updates
 
@@ -137,6 +154,16 @@ plot_tsd(df, dir_ref=1, start_min=1, end_min=3, save=True, fname='TSD')
 
 - Major updates after the Tandon Research Expo
 - Temporarily wrapped some functions in `demo.py` to facilitate demonstration process
+
+[180517]
+
+- Major fix for `busdata.py` (renamed from fetchbus)
+  - File naming convention changed (Day of week moved to the end)
+  - `bus_data` is renamed as `stream_bus`
+  - `split_trips` is added to help remove different trips by creating `NewVehicleRef`
+  - Existing functions are optimized and are ready-to-use
+  - `plot_tsd` now accepts time range arguments and print titles correctly
+- For example, see [example](example_busdata).
 
 ## References
 

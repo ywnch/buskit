@@ -1,3 +1,10 @@
+# Author: Yuwen Chang, NYU CUSP
+# Last Updated: 2018/05/16
+##############################
+# Code written for Bus Simulator
+# https://github.com/ywnch/BusSimulator
+##############################
+
 # import packages
 from __future__ import print_function, division
 from IPython.display import display, clear_output, Image
@@ -25,7 +32,7 @@ import collections
 from collections import defaultdict
 
 import scipy.stats as ss
-from fetchbus import flatten, bus_data, plot_tsd
+from busdata import flatten, stream_bus, plot_tsd
 
 try:
     import urllib2 as urllib
