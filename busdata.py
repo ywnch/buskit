@@ -1,5 +1,5 @@
 # Author: Yuwen Chang, NYU CUSP
-# Last Updated: 2018/04/09
+# Last Updated: 2018/05/16
 ##############################
 # Code written for Bus Simulator
 # https://github.com/ywnch/BusSimulator
@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 import time
 import calendar
 import collections
-from datetime import datetime
+from datetime import datetime, timedelta
 
 try:
     import urllib2 as urllib
@@ -58,8 +58,8 @@ def flatten(d, parent_key='', sep='_'):
             items.append((new_key, v))
     return dict(items)
 
-# function for fetching bus data
-def bus_data(apikey, route, duration=5):
+# function for streaming bus data
+def stream_bus(apikey, route, duration=5):
     """
     Fetch MTA real-time bus location data for specified route and direction
     in a given duration.
@@ -84,7 +84,7 @@ def bus_data(apikey, route, duration=5):
     # name the output csv file
     ts = datetime.now()
     dow = calendar.day_name[ts.weekday()][:3]
-    filename = '%s-%s-%s-%s.csv'%(route, dow, ts.strftime('%y%m%d-%H%M%S'), duration)
+    filename = '%s-%s-%s-%s.csv'%(route, ts.strftime('%y%m%d-%H%M%S'), duration, dow)
     
     # set up parameters
     t_elapsed = 0 # timer
@@ -93,7 +93,7 @@ def bus_data(apikey, route, duration=5):
     df = pd.DataFrame() # empty dataframe
     
     # main block for fetching data
-    while True:
+    while t_elapsed < duration:
         # fetch data through MTA API
         response = urllib.urlopen(url)
         data = response.read().decode("utf-8")
@@ -116,6 +116,7 @@ def bus_data(apikey, route, duration=5):
         # parse the data of each active vehicle
         for i, v in enumerate(data2):
             #if 'OnwardCall' in v['MonitoredVehicleJourney']['OnwardCalls']:
+            ### ^ seems like a better way to avoid null calls
             try:
                 # map variables
                 dict1 = flatten(v['MonitoredVehicleJourney'])
@@ -125,7 +126,8 @@ def bus_data(apikey, route, duration=5):
                 dict1.pop('OnwardCall')
 
                 # print info of the vehicle
-                print("Bus %s (#%s) is at latitude %s and longitude %s"%(i+1, dict1['VehicleRef'], dict1['Latitude'], dict1['Longitude']))
+                print("Bus %s (#%s) is at latitude %s and longitude %s, heading for %s (direction: %s)"%(i+1,
+                      dict1['VehicleRef'], dict1['Latitude'], dict1['Longitude'], dict1['DestinationName'], dict1['DirectionRef']))
 
                 # write data to dictionary
                 df = pd.concat([df, pd.DataFrame(dict1, index=[i])])
@@ -138,12 +140,61 @@ def bus_data(apikey, route, duration=5):
         df.to_csv(filename)
 
         # check and update timer
-        #UPDATE THIS TO WHILE LOOP IN FUTURE VERSION
-        if t_elapsed < duration:
-            t_elapsed += 30
-            time.sleep(30)
-        else:
-            return df
+        t_elapsed += 30
+        time.sleep(30)
+    return df
+
+# function for splitting multiple trips of same vehicles
+def split_trips(df):
+    """
+    Split different trips made by the same vehicle within
+    a given dataframe containing real-time MTA bus data
+
+    PARAMETERS
+    ----------
+    df: pd.DataFrame
+        Input dataframe containing standard MTA SIRI variables.
+        
+    RETURNS
+    -------
+    df_all: pd.DataFrame
+        Output dataframe with NewVehicleRef that is split
+    """
+
+    def split_oneway(df):
+        """
+        The core function for splitting, works for one direction at a time.
+        ### This may be slow for bigger datasets and requires optimization in the future ###
+        """
+        dfs = []
+        for v in df['VehicleRef'].unique():       
+            
+            trip = 1 # start with trip no. 1
+            NewVehicleRef = [] # include initial one for the first record?: v + '_' + str(trip)
+            
+            test = df[df['VehicleRef'] == v].sort_index()
+            
+            for boo in list(test['CallDistanceAlongRoute'].diff() < -2000):
+                if boo: # if this is a new trip (which jumps back more than 2 km)
+                    trip += 1 # assign new trip no.
+                NewVehicleRef.append(v + '_' + str(trip)) # each iteration, append new vehicle ref
+            
+            test['NewVehicleRef'] = NewVehicleRef
+            dfs.append(test)
+        df_all = pd.concat(dfs)
+        return df_all
+
+    # split by different directions
+    dfs = []
+    for d in df['DirectionRef'].unique():
+        df_dir = df[df['DirectionRef'] == d]
+        df_dir = split_oneway(df_dir)
+        dfs.append(df_dir)
+    df_all = pd.concat(dfs)
+    df_all.sort_values("RecordedAtTime", inplace=True)
+    df_all.reset_index(drop=True, inplace=True)
+
+    return df_all
 
 # function for plotting time-space diagram
 def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD'):
@@ -172,44 +223,55 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
     filename.png: png
         a saved TSD file (optional)
     """
-    # determine time interval to be plotted
-    try:
-        s = start_min * 2 # * 60 sec / 30 sec interval
-        e = end_min * 2
-    except:
-        s = start_min
-        e = end_min
     
     # subset df for given direction
     df = df[df['DirectionRef'] == dir_ref]
     
     # convert time format
-    df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime'])
+    df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime']) \
+                             .dt.tz_localize('UTC') \
+                             .dt.tz_convert('America/New_York')
 
-    # plot figure
-    fig = plt.figure(figsize=(12,8))
-    ax = fig.add_subplot(111)
+    # determine time interval to be plotted
+    start = df["RecordedAtTime"].min()
+    end = df["RecordedAtTime"].max()
+
+    s = start if start_min == None else start + timedelta(minutes=start_min)
+    e = end if end_min == None else start + timedelta(minutes=end_min)
+    
+    df = df[(df['RecordedAtTime'] > s) * (df['RecordedAtTime'] < e)]
     
     # calculate vehicle distance along the route
     df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
     
+    # check if trips are split already
+    try:
+        vehref = df['NewVehicleRef'] # use split vehicles if available
+    except:
+        vehref = df['VehicleRef']
+
+    # plot figure
+    fig = plt.figure(figsize=(12,8))
+    ax = fig.add_subplot(111)
+
+    # plot CallDistanceAlongRoute (bus stops)
+    stops = df['CallDistanceAlongRoute'].unique()
+    left = [df['RecordedAtTime'].min()] * 12
+    right = [df['RecordedAtTime'].max()] * 12
+    ax.plot([left, right], [stops, stops], color='gray', alpha=0.1);
+
     # plot the trajectory for each vehicle
-    for i, v in enumerate(df['VehicleRef'].unique()):
+    for i, v in enumerate(vehref.unique()):
         # subset data for single vehicle
-        veh_df = df[df['VehicleRef'] == v]
-        # subset within specified time window
-        veh_df = veh_df.iloc[s:e,:]
-        
-        # plot CallDistanceAlongRoute (bus stops)
-        [ax.plot([df['RecordedAtTime'].min(), df['RecordedAtTime'].max()], [i, i], color='gray', alpha=0.1) for i in df['CallDistanceAlongRoute'].unique()]
+        veh_df = df[vehref == v]
         
         ax.plot(veh_df['RecordedAtTime'], veh_df['VehDistAlongRoute'], marker='.')
         ax.annotate('%s'%v.split("_")[1], (list(veh_df['RecordedAtTime'])[0],list(veh_df['VehDistAlongRoute'])[0]))
         
-        ax.grid()
-        ax.set_xlabel("time", fontsize=14)
-        ax.set_ylabel("distance along route (m)", fontsize=14)
-        ax.set_title("Time-space Diagram", fontsize=18)
+    ax.grid()
+    ax.set_xlabel("time", fontsize=14)
+    ax.set_ylabel("distance along route (m)", fontsize=14)
+    ax.set_title("Time-space Diagram", fontsize=18)
     
     plt.tight_layout()
     
@@ -229,12 +291,4 @@ if __name__ == '__main__':
         sys.exit()
 
     # read args and fetch data
-    df = bus_data(sys.argv[1], sys.argv[2], sys.argv[3])
-
-    # # name the output png file (!!!SHOULD UPDATE THIS PART!!!)
-    # ts = datetime.now()
-    # dow = calendar.day_name[ts.weekday()][:3]
-    # filename = '%s-%s-%s-%s'%(sys.argv[2], dow, ts.strftime('%y%m%d-%H%M%S'), sys.argv[3])
-
-    # # plot time-space diagram
-    # plot_tsd(df, save=True, fname=filename)
+    df = stream_bus(sys.argv[1], sys.argv[2], sys.argv[3])
