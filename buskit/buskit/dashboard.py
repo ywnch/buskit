@@ -32,7 +32,7 @@ import collections
 from collections import defaultdict
 
 import scipy.stats as ss
-from busdata import flatten, stream_bus, plot_tsd
+from .busdata import *
 
 try:
     import urllib2 as urllib
@@ -52,10 +52,10 @@ except ImportError:
 def df_process(df, direction):
     """ Pre-process data for plotting"""
     df = df[df['DirectionRef'] == direction]
-    df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
     df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime'])
     return df
 
+### this function is to be removed in future ###
 def df_addts(df):
     """ this bloc generate a timestep sequence for psuedo real-time simulation """
     mod = list(df['Unnamed: 0'])
@@ -81,8 +81,12 @@ def dash_hist(df, route_shp):
     ax3 = fig.add_subplot(212)
 
     # plot CallDistanceAlongRoute (bus stops)
-    [ax1.plot([df['RecordedAtTime'].min(), df['RecordedAtTime'].max()], [i, i], color='gray', alpha=0.1) for i in df['CallDistanceAlongRoute'].unique()]
-    p1, = ax1.plot([], [], '-', color='steelblue')
+    stops = df['CallDistanceAlongRoute'].unique()
+    left = [df['RecordedAtTime'].min()] * 12
+    right = [df['RecordedAtTime'].max()] * 12
+    ax.plot([left, right], [stops, stops], color='gray', alpha=0.2);
+
+    p0, = ax1.plot([], [], '-', color='steelblue')
 
     ax1.grid()
     ax1.set_xlabel("time", fontsize=14)
@@ -91,7 +95,7 @@ def dash_hist(df, route_shp):
 
     # plot route shape on map (2-D)
     route_shp.plot(ax=ax2)
-    p7, = ax2.plot([], [], 'o', color='lawngreen')
+    p1, = ax2.plot([], [], 'o', color='lawngreen')
     p2, = ax2.plot([], [], 'o', color='indianred')
 
     ax2.set_ylabel("Latitude", fontsize=14)
@@ -132,7 +136,7 @@ def dash_hist(df, route_shp):
             ax1.plot(bb_df['RecordedAtTime'], bb_df['VehDistAlongRoute'], 'o', color='indianred', alpha=0.5)
             #ax1.annotate('%s'%v.split("_")[1], (list(veh_df['RecordedAtTime'])[0],list(veh_df['VehDistAlongRoute'])[0]))
 
-        p7.set_data(df3['Longitude'], df3['Latitude'])
+        p1.set_data(df3['Longitude'], df3['Latitude'])
         p2.set_data(bb_df['Longitude'], bb_df['Latitude'])
         p3.set_data(df3['VehDistAlongRoute'], [0]*len(df3))
         p4.set_data(bb_df['VehDistAlongRoute'], [0]*len(bb_df))
@@ -193,47 +197,3 @@ def queryCartoDB(query, format='CSV', source=SQL_SOURCE):
     except Exception:
         raise
     return response.read()
-
-### simulation part ###
-
-def read_data(filename, direction=0):
-    """
-    read stop and speed from data created by fetchbus.py
-    """
-    data = pd.read_csv(filename)
-    
-    # subset data for non-repeating stops
-    data = data[data['DirectionRef'] == direction]
-    data.drop_duplicates(['CallDistanceAlongRoute'], inplace=True)
-    data.sort_values(['CallDistanceAlongRoute'], inplace=True)
-    
-    # read 1-D stop distances (in meters) and names
-    stop_ref = np.array(data['StopPointRef'])
-    stop_pos = np.array(data['CallDistanceAlongRoute'])
-    stop_name = np.array(data['StopPointName'])
-    
-    stop_pos -= stop_pos[0] # reset first stop to 0 ### TEMPARARY MEASURE ###
-    
-    # read LTT or speed
-    ### CURRENTLY UNAVAILABLE ###
-    
-    # read dwelling time
-    ### CURRENTLY UNAVAILABLE ###
-    
-    return stop_ref, stop_pos, stop_name
-
-def bus_tsd(bus):
-    plt.figure(figsize=(10,6))
-    plt.plot(range(len(bus.log_pos)), bus.log_pos)
-    plt.title("Time-space Diagram of Bus Ref. %s"%(bus.ref), fontsize=18)
-    plt.xlabel("Timestep (second)", fontsize=14)
-    plt.ylabel("Distance (meter)", fontsize=14)
-    plt.show()
-    
-def stop_pax(stop):
-    plt.figure(figsize=(10,6))
-    plt.plot(range(len(stop.log_pax)), stop.log_pax)
-    plt.title("Passengers at Stop Ref. %s"%(stop.ref), fontsize=18)
-    plt.xlabel("Timestep (second)", fontsize=14)
-    plt.ylabel("Waiting Passengers", fontsize=14)
-    plt.show()

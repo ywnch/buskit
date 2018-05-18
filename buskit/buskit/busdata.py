@@ -136,6 +136,10 @@ def stream_bus(apikey, route, duration=5):
                 e = sys.exc_info()[0]
                 print("Error: %s"%e)
 
+        ### preprocessing ###
+        # calculate vehicle distance along the route
+        df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
+
         # write/update data to csv
         df.to_csv(filename)
 
@@ -226,9 +230,13 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
     filename.png: png
         a saved TSD file (optional)
     """
-    
+    ### MORE PLOTTING KWARGS TO BE ADDED ###
+
     # subset df for given direction
     df = df[df['DirectionRef'] == dir_ref]
+
+    # calculate vehicle distance along the route
+    df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
     
     # convert time format
     df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime']) \
@@ -244,9 +252,6 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
     
     df = df[(df['RecordedAtTime'] > s) * (df['RecordedAtTime'] < e)]
     
-    # calculate vehicle distance along the route
-    df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
-    
     # check if trips are split already
     try:
         vehref = df['NewVehicleRef'] # use split vehicles if available
@@ -261,7 +266,7 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
     stops = df['CallDistanceAlongRoute'].unique()
     left = [df['RecordedAtTime'].min()] * 12
     right = [df['RecordedAtTime'].max()] * 12
-    ax.plot([left, right], [stops, stops], color='gray', alpha=0.1);
+    ax.plot([left, right], [stops, stops], color='gray', alpha=0.2);
 
     # plot the trajectory for each vehicle
     for i, v in enumerate(vehref.unique()):

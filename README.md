@@ -4,17 +4,19 @@
 
 Author: Yuwen Chang (M.S. at NYU CUSP 2018)
 
-Instructor: Prof. Joseph Chow
+Project of [BUILT@NYU](https://github.com/BUILTNYU) led by Prof. Joseph Chow
+
+## This toolkit is meant to be…
+
+- A **simple** and **generalized** data pipeline for bus analytics
+- A **simple** and **flexible** simulation environment for operation evaluation
+- An **adaptable** and **scalable** approach for other cities given GTFS and SIRI
+
+## Installation
+
+`pip install buskit`
 
 ## Motivation
-
-**
-
-- Simple and generalized data pipeline
-- Simple and flexible simulation environment
-- Scalable to other cities given GTFS and SIRI
-
-**
 
 - How can we easily analyze bus trajectories and activities? How can we mitigate bus bunching? How do we know the effects of operational strategies such as holding or skipping on the services and passengers?
 - While data is widely available, there is no single, open-source, and easy-to-use tool that let us monitor and analyze bus activity. This python toolkit aims to make the analysis pipeline both simple and flexible, with tasks ranging from monitoring real-time activities, fetching data for historical analysis, to simulating operation strategies to mitigate bus bunching.
@@ -26,18 +28,27 @@ Instructor: Prof. Joseph Chow
 
 ## Data Streaming Functions
 
-### stream_bus: Get bus data
+### busdata.stream_bus: Get bus data
 
-Manually download the [script](https://github.com/ywnch/BusSimulator/blob/master/fetchbus.py) or clone the repo and import the functions to your Jupyter notebook or run it on command lines as the example below:
+Install through `pip` OR manually download the [script](buskit/buskit/busdata.py) OR clone the repo and import the functions to your Jupyter notebook or run it on command lines as the example below:
 
 ```python
-git clone https://github.com/ywnch/BusSimulator.git
+# EXAMPLE #
 # fetch bus data for route B54 for 1 minute (once per 30 secs)
-python fetchbus.py $MTAAPIKEY "B54" 1
 # SBS lineref example: "S79%2B", which would be interpreted as "S79+"
+
+### direct download and command line run ###
+git clone https://github.com/ywnch/BusSimulator.git
+python fetchbus.py $MTAAPIKEY "B54" 1
+
+### pip download and run as module in Jupyter
+pip install buskit # command line
+
+from buskit import busdata as bdata
+bdata.stream_bus(MTAAPI, "B54", 1)
 ```
 
-### split_trips: Split different trips made by same vehicles
+### busdata.split_trips: Split different trips made by same vehicles
 
 ```python
 # new vehicle reference number will have a trip no. suffix
@@ -45,17 +56,19 @@ df = split_trips(df)
 df["NewVehicleRef"]
 ```
 
-### plot_tsd: Plot time-space diagram
+### busdata.plot_tsd: Plot time-space diagram
 
 Import the functions and simply plot the dataframe as downloaded using `bus_data`.
 
 ```python
-from fetchbus import plot_tsd
+from buskit import busdata as bdata
 # read the downloaded data
 df = pd.read_csv("B54-180403-170417-5-Tue.csv")
 # plot bus direction 1 in df starting from minute 10 to minute 30 and save it as TSD.png
-plot_tsd(df, dir_ref=1, start_min=10, end_min=30, save=True, fname='TSD')
+bdata.plot_tsd(df, dir_ref=1, start_min=10, end_min=30, save=True, fname='TSD')
 ```
+
+For more examples, see [example](example_busdata.ipynb).
 
 ## Objectives
 
@@ -163,7 +176,11 @@ plot_tsd(df, dir_ref=1, start_min=10, end_min=30, save=True, fname='TSD')
   - `split_trips` is added to help remove different trips by creating `NewVehicleRef`
   - Existing functions are optimized and are ready-to-use
   - `plot_tsd` now accepts time range arguments and print titles correctly
-- For example, see [example](example_busdata).
+- For example, see [example](example_busdata.ipynb).
+
+[180518]
+
+- Now registered on PyPI as `buskit` ([version 1.0.0.dev1](https://pypi.org/project/buskit/))
 
 ## References
 
