@@ -27,6 +27,8 @@ import calendar
 import collections
 from datetime import datetime, timedelta
 
+from .dashboard import *
+
 try:
     import urllib2 as urllib
 except ImportError:
@@ -59,7 +61,7 @@ def flatten(d, parent_key='', sep='_'):
     return dict(items)
 
 # function for streaming bus data
-def stream_bus(apikey, route, duration=5):
+def stream_bus(apikey, linename, duration=5):
     """
     Fetch MTA real-time bus location data for specified route and direction
     in a given duration.
@@ -84,12 +86,12 @@ def stream_bus(apikey, route, duration=5):
     # name the output csv file
     ts = datetime.now()
     dow = calendar.day_name[ts.weekday()][:3]
-    filename = '%s-%s-%s-%s.csv'%(route, ts.strftime('%y%m%d-%H%M%S'), duration, dow)
+    filename = '%s-%s-%s-%s.csv'%(linename, ts.strftime('%y%m%d-%H%M%S'), duration, dow)
     
     # set up parameters
     t_elapsed = 0 # timer
     duration = int(duration) * 60 # minutes to seconds
-    url = "http://bustime.mta.info/api/siri/vehicle-monitoring.json?key=%s&VehicleMonitoringDetailLevel=calls&LineRef=%s"%(apikey, route)
+    url = "http://bustime.mta.info/api/siri/vehicle-monitoring.json?key=%s&VehicleMonitoringDetailLevel=calls&LineRef=%s"%(apikey, linename)
     df = pd.DataFrame() # empty dataframe
     
     # main block for fetching data
@@ -110,7 +112,7 @@ def stream_bus(apikey, route, duration=5):
 
         # print info of the current query request
         print("\nTime Elapsed: " + str(t_elapsed/60) + " min(s)")
-        print("Bus Line: " + route)
+        print("Bus Line: " + linename)
         print("Number of Active Buses: " + str(len(data2)))
 
         # parse the data of each active vehicle
@@ -203,6 +205,36 @@ def split_trips(df):
 
     return df_all
 
+def df_process(df, dir_ref):
+    # subset df for given direction
+    df = df[df['DirectionRef'] == dir_ref]
+
+    # calculate vehicle distance along the route
+    df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
+    
+    # convert time format
+    df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime']) \
+                             .dt.tz_localize('UTC') \
+                             .dt.tz_convert('America/New_York')
+
+    return df
+
+### this function is to be removed in future ###
+def df_addts(df):
+    """ this bloc generate a timestep sequence for psuedo real-time simulation """
+    mod = list(df['Unnamed: 0'])
+    tiempo = 0
+    ts = []
+    for i,v in enumerate(mod[:-1]):
+        ts.append(tiempo)
+        if mod[i+1] < mod[i]:
+            tiempo += 30
+        else:
+            continue
+    ts.append(ts[-1])
+    df['ts'] = ts
+    return df
+
 # function for plotting time-space diagram
 def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD'):
     """
@@ -232,16 +264,11 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
     """
     ### MORE PLOTTING KWARGS TO BE ADDED ###
 
-    # subset df for given direction
-    df = df[df['DirectionRef'] == dir_ref]
-
-    # calculate vehicle distance along the route
-    df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
-    
-    # convert time format
-    df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime']) \
-                             .dt.tz_localize('UTC') \
-                             .dt.tz_convert('America/New_York')
+    # pre-process the data if necessary
+    try:
+        df = df_process(df, dir_ref)
+    except:
+        pass
 
     # determine time interval to be plotted
     start = df["RecordedAtTime"].min()

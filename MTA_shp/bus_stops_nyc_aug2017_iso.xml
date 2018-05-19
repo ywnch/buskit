@@ -1,0 +1,589 @@
+﻿<MD_Metadata xmlns="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:srv="http://www.isotc211.org/2005/srv" xmlns:gml="http://www.opengis.net/gml" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <fileIdentifier>
+    <gco:CharacterString>2D063420-515F-489E-A232-0DD9FA06EC4C</gco:CharacterString>
+  </fileIdentifier>
+  <language>
+    <LanguageCode codeList="http://www.loc.gov/standards/iso639-2/php/code_list.php" codeListValue="eng" codeSpace="ISO639-2">eng</LanguageCode>
+  </language>
+  <characterSet>
+    <MD_CharacterSetCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8" codeSpace="ISOTC211/19115">utf8</MD_CharacterSetCode>
+  </characterSet>
+  <hierarchyLevel>
+    <MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset" codeSpace="ISOTC211/19115">dataset</MD_ScopeCode>
+  </hierarchyLevel>
+  <contact>
+    <CI_ResponsibleParty>
+      <organisationName>
+        <gco:CharacterString>Newman Library, Baruch CUNY</gco:CharacterString>
+      </organisationName>
+      <positionName>
+        <gco:CharacterString>Geospatial Data Librarian</gco:CharacterString>
+      </positionName>
+      <contactInfo>
+        <CI_Contact>
+          <address>
+            <CI_Address>
+              <deliveryPoint>
+                <gco:CharacterString>151 E 25th St Box H-0520</gco:CharacterString>
+              </deliveryPoint>
+              <deliveryPoint>
+                <gco:CharacterString>Newman Library, Baruch CUNY</gco:CharacterString>
+              </deliveryPoint>
+              <city>
+                <gco:CharacterString>New York</gco:CharacterString>
+              </city>
+              <administrativeArea>
+                <gco:CharacterString>NY</gco:CharacterString>
+              </administrativeArea>
+              <postalCode>
+                <gco:CharacterString>10010</gco:CharacterString>
+              </postalCode>
+              <country>
+                <Country codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US" codeSpace="ISO3166-1">US</Country>
+              </country>
+            </CI_Address>
+          </address>
+        </CI_Contact>
+      </contactInfo>
+      <role>
+        <CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact" codeSpace="ISOTC211/19115">pointOfContact</CI_RoleCode>
+      </role>
+    </CI_ResponsibleParty>
+  </contact>
+  <dateStamp>
+    <gco:Date>2017-10-12</gco:Date>
+  </dateStamp>
+  <metadataStandardName>
+    <gco:CharacterString>NAP - Metadata</gco:CharacterString>
+  </metadataStandardName>
+  <metadataStandardVersion>
+    <gco:CharacterString>1.2</gco:CharacterString>
+  </metadataStandardVersion>
+  <dataSetURI>
+    <gco:CharacterString>https://www.baruch.cuny.edu/confluence/display/geoportal/NYC+Mass+Transit+Spatial+Layers</gco:CharacterString>
+  </dataSetURI>
+  <spatialRepresentationInfo>
+    <MD_VectorSpatialRepresentation>
+      <topologyLevel>
+        <MD_TopologyLevelCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_TopologyLevelCode" codeListValue="geometryOnly" codeSpace="ISOTC211/19115">geometryOnly</MD_TopologyLevelCode>
+      </topologyLevel>
+      <geometricObjects>
+        <MD_GeometricObjects>
+          <geometricObjectType>
+            <MD_GeometricObjectTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_GeometricObjectTypeCode" codeListValue="point" codeSpace="ISOTC211/19115">point</MD_GeometricObjectTypeCode>
+          </geometricObjectType>
+          <geometricObjectCount>
+            <gco:Integer>15179</gco:Integer>
+          </geometricObjectCount>
+        </MD_GeometricObjects>
+      </geometricObjects>
+    </MD_VectorSpatialRepresentation>
+  </spatialRepresentationInfo>
+  <referenceSystemInfo>
+    <MD_ReferenceSystem>
+      <referenceSystemIdentifier>
+        <RS_Identifier>
+          <code>
+            <gco:CharacterString>2263</gco:CharacterString>
+          </code>
+          <codeSpace>
+            <gco:CharacterString>EPSG</gco:CharacterString>
+          </codeSpace>
+          <version>
+            <gco:CharacterString>10.3</gco:CharacterString>
+          </version>
+        </RS_Identifier>
+      </referenceSystemIdentifier>
+    </MD_ReferenceSystem>
+  </referenceSystemInfo>
+  <identificationInfo>
+    <MD_DataIdentification>
+      <citation>
+        <CI_Citation>
+          <title>
+            <gco:CharacterString>Bus Stops, New York NY, August 2017</gco:CharacterString>
+          </title>
+          <date>
+            <CI_Date>
+              <date>
+                <gco:Date>2017-09-21</gco:Date>
+              </date>
+              <dateType>
+                <CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" codeSpace="ISOTC211/19115">publication</CI_DateTypeCode>
+              </dateType>
+            </CI_Date>
+          </date>
+          <edition>
+            <gco:CharacterString>aug2017</gco:CharacterString>
+          </edition>
+          <citedResponsibleParty>
+            <CI_ResponsibleParty>
+              <organisationName>
+                <gco:CharacterString>Newman Library, Baruch CUNY</gco:CharacterString>
+              </organisationName>
+              <positionName>
+                <gco:CharacterString>Geospatial Data Librarian</gco:CharacterString>
+              </positionName>
+              <contactInfo>
+                <CI_Contact>
+                  <address>
+                    <CI_Address>
+                      <deliveryPoint>
+                        <gco:CharacterString>151 E 25th St Box H-0520</gco:CharacterString>
+                      </deliveryPoint>
+                      <deliveryPoint>
+                        <gco:CharacterString>Newman Library, Baruch CUNY</gco:CharacterString>
+                      </deliveryPoint>
+                      <city>
+                        <gco:CharacterString>New York</gco:CharacterString>
+                      </city>
+                      <administrativeArea>
+                        <gco:CharacterString>NY</gco:CharacterString>
+                      </administrativeArea>
+                      <postalCode>
+                        <gco:CharacterString>10010</gco:CharacterString>
+                      </postalCode>
+                      <country>
+                        <Country codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US" codeSpace="ISO3166-1">US</Country>
+                      </country>
+                    </CI_Address>
+                  </address>
+                </CI_Contact>
+              </contactInfo>
+              <role>
+                <CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact" codeSpace="ISOTC211/19115">pointOfContact</CI_RoleCode>
+              </role>
+            </CI_ResponsibleParty>
+          </citedResponsibleParty>
+          <presentationForm>
+            <CI_PresentationFormCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_PresentationFormCode" codeListValue="mapDigital" codeSpace="ISOTC211/19115">mapDigital</CI_PresentationFormCode>
+          </presentationForm>
+          <series>
+            <CI_Series>
+              <name>
+                <gco:CharacterString>NYC Mass Transit Spatial Layers</gco:CharacterString>
+              </name>
+            </CI_Series>
+          </series>
+        </CI_Citation>
+      </citation>
+      <abstract>
+        <gco:CharacterString>This point layer was created from the GTFS data feeds from the Metropolitan Transportation Authority (MTA). It represents the local bus stop locations (individual locations where one or more buses make stops) for the MTA NYC Transit bus routes. A python script was written to take the data files as input and process them to create a spatial layer in the local state plane coordinate reference system. The unique ID is stop_id, a field created by the MTA. This layer was created as part of the NYC Mass Transit Spatial Layers series, and is updated biannually to account for changes in the transit system.</gco:CharacterString>
+      </abstract>
+      <purpose>
+        <gco:CharacterString>This dataset is intended for researchers, policy makers, students, and educators for basic geographic analysis and mapping purposes. It was created by the GIS Lab at the Newman Library at Baruch College CUNY as part of the NYC Mass Transit Spatial Layers series, so that members of the public could have access to well-documented and readily-usable GIS layers of NYC mass transit features.</gco:CharacterString>
+      </purpose>
+      <status>
+        <MD_ProgressCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ProgressCode" codeListValue="completed" codeSpace="ISOTC211/19115">completed</MD_ProgressCode>
+      </status>
+      <pointOfContact>
+        <CI_ResponsibleParty>
+          <organisationName>
+            <gco:CharacterString>Newman Library, Baruch CUNY</gco:CharacterString>
+          </organisationName>
+          <positionName>
+            <gco:CharacterString>Geospatial Data Librarian</gco:CharacterString>
+          </positionName>
+          <contactInfo>
+            <CI_Contact>
+              <address>
+                <CI_Address>
+                  <deliveryPoint>
+                    <gco:CharacterString>151 E 25th St Box H-0520</gco:CharacterString>
+                  </deliveryPoint>
+                  <deliveryPoint>
+                    <gco:CharacterString>Newman Library, Baruch CUNY</gco:CharacterString>
+                  </deliveryPoint>
+                  <city>
+                    <gco:CharacterString>New York</gco:CharacterString>
+                  </city>
+                  <administrativeArea>
+                    <gco:CharacterString>NY</gco:CharacterString>
+                  </administrativeArea>
+                  <postalCode>
+                    <gco:CharacterString>10010</gco:CharacterString>
+                  </postalCode>
+                  <country>
+                    <Country codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US" codeSpace="ISO3166-1">US</Country>
+                  </country>
+                </CI_Address>
+              </address>
+            </CI_Contact>
+          </contactInfo>
+          <role>
+            <CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact" codeSpace="ISOTC211/19115">pointOfContact</CI_RoleCode>
+          </role>
+        </CI_ResponsibleParty>
+      </pointOfContact>
+      <resourceMaintenance>
+        <MD_MaintenanceInformation>
+          <maintenanceAndUpdateFrequency>
+            <MD_MaintenanceFrequencyCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_MaintenanceFrequencyCode" codeListValue="biannually" codeSpace="ISOTC211/19115">biannually</MD_MaintenanceFrequencyCode>
+          </maintenanceAndUpdateFrequency>
+        </MD_MaintenanceInformation>
+      </resourceMaintenance>
+      <descriptiveKeywords>
+        <MD_Keywords>
+          <keyword>
+            <gco:CharacterString>City of New York, 2395220, Borough of Bronx, 978756, Borough of Brooklyn, 978759, Borough of Manhattan, 979190, Borough of Queens, 979404, Borough of Staten Island, 979522</gco:CharacterString>
+          </keyword>
+          <type>
+            <MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="place" codeSpace="ISOTC211/19115">place</MD_KeywordTypeCode>
+          </type>
+          <thesaurusName>
+            <CI_Citation>
+              <title>
+                <gco:CharacterString>Geographic Names Information Service (GNIS)</gco:CharacterString>
+              </title>
+              <alternateTitle>
+                <gco:CharacterString>ANSI INCITTS 446:2008</gco:CharacterString>
+              </alternateTitle>
+              <date>
+                <CI_Date>
+                  <date>
+                    <gco:Date>2008-01-01</gco:Date>
+                  </date>
+                  <dateType>
+                    <CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" codeSpace="ISOTC211/19115">publication</CI_DateTypeCode>
+                  </dateType>
+                </CI_Date>
+              </date>
+              <citedResponsibleParty gco:nilReason="missing" />
+            </CI_Citation>
+          </thesaurusName>
+        </MD_Keywords>
+      </descriptiveKeywords>
+      <descriptiveKeywords>
+        <MD_Keywords>
+          <keyword>
+            <gco:CharacterString>Bronx County, 36005, Kings County, 36047, New York County, 36061, Queens County, 36081, Richmond County, 36085</gco:CharacterString>
+          </keyword>
+          <type>
+            <MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="place" codeSpace="ISOTC211/19115">place</MD_KeywordTypeCode>
+          </type>
+          <thesaurusName>
+            <CI_Citation>
+              <title>
+                <gco:CharacterString>US Census ANSI/FIPS</gco:CharacterString>
+              </title>
+              <alternateTitle>
+                <gco:CharacterString>ANSI INCITTS 38:2009 (Formerly FIPS 5-2) &amp; ANSI INCITTS 31:2009 (Formerly FIPS 6-4)</gco:CharacterString>
+              </alternateTitle>
+              <date>
+                <CI_Date>
+                  <date>
+                    <gco:Date>2009-01-01</gco:Date>
+                  </date>
+                  <dateType>
+                    <CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" codeSpace="ISOTC211/19115">publication</CI_DateTypeCode>
+                  </dateType>
+                </CI_Date>
+              </date>
+              <citedResponsibleParty gco:nilReason="missing" />
+            </CI_Citation>
+          </thesaurusName>
+        </MD_Keywords>
+      </descriptiveKeywords>
+      <descriptiveKeywords>
+        <MD_Keywords>
+          <keyword>
+            <gco:CharacterString>2017</gco:CharacterString>
+          </keyword>
+          <type>
+            <MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="temporal" codeSpace="ISOTC211/19115">temporal</MD_KeywordTypeCode>
+          </type>
+        </MD_Keywords>
+      </descriptiveKeywords>
+      <descriptiveKeywords>
+        <MD_Keywords>
+          <keyword>
+            <gco:CharacterString>Buses, Bus stops, Local transit, Commuting, New York City Transit Authority, Transportation</gco:CharacterString>
+          </keyword>
+          <type>
+            <MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme" codeSpace="ISOTC211/19115">theme</MD_KeywordTypeCode>
+          </type>
+          <thesaurusName>
+            <CI_Citation>
+              <title>
+                <gco:CharacterString>Library of Congress Subject Headings (LCSH)</gco:CharacterString>
+              </title>
+              <date>
+                <CI_Date>
+                  <date>
+                    <gco:Date>2015-02-17</gco:Date>
+                  </date>
+                  <dateType>
+                    <CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" codeSpace="ISOTC211/19115">publication</CI_DateTypeCode>
+                  </dateType>
+                </CI_Date>
+              </date>
+              <citedResponsibleParty gco:nilReason="missing" />
+            </CI_Citation>
+          </thesaurusName>
+        </MD_Keywords>
+      </descriptiveKeywords>
+      <descriptiveKeywords>
+        <MD_Keywords>
+          <keyword>
+            <gco:CharacterString>Downloadable Data</gco:CharacterString>
+          </keyword>
+          <thesaurusName uuidref="723f6998-058e-11dc-8314-0800200c9a66" />
+        </MD_Keywords>
+      </descriptiveKeywords>
+      <resourceConstraints>
+        <MD_Constraints>
+          <useLimitation>
+            <gco:CharacterString>Disclaimer: Every effort was made to insure that the data, which was compiled from public sources, was processed accurately. The creator, Baruch College, and CUNY disclaim any liability for errors, inaccuracies, or omissions that may be contained therein or for any damages that may arise from the foregoing. Users should independently verify the accuracy of the data for their purposes.The data is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International license CC BY-NC-ND http://creativecommons.org/licenses/by-nc-nd/4.0/ You are free to share the work as long as you cite the source, do not use it for commercial purposes, and do not distribute derivatives of the data.Although this data is being distributed by Baruch College CUNY, no warranty expressed or implied is made by the College or University as to the accuracy of the data and related materials. The act of distribution shall not constitute any such warranty, and no responsibility is assumed by the College or University in the use of this data, or related materials.This data was derived from Metropolitan Transportation Authority (MTA) sources; it is NOT directly created, maintained, or endorsed by the MTA. The MTA should not be approached with inquiries about this dataset as they are in no way responsible for it. Since this data is a derivative of MTA data sources, it is subject to the terms and conditions presented here: http://web.mta.info/developers/developer-data-terms.html#data.</gco:CharacterString>
+          </useLimitation>
+        </MD_Constraints>
+      </resourceConstraints>
+      <resourceConstraints>
+        <MD_LegalConstraints>
+          <accessConstraints>
+            <MD_RestrictionCode codeList="http://www.fgdc.gov/nap/metadata/register/codelists.html#napMD_RestrictionCode" codeListValue="licenseUnrestricted" codeSpace="ISOTC211/19139/NAP">licenseUnrestricted</MD_RestrictionCode>
+          </accessConstraints>
+          <useConstraints>
+            <MD_RestrictionCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_RestrictionCode" codeListValue="license" codeSpace="ISOTC211/19115">license</MD_RestrictionCode>
+          </useConstraints>
+        </MD_LegalConstraints>
+      </resourceConstraints>
+      <spatialRepresentationType>
+        <MD_SpatialRepresentationTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_SpatialRepresentationTypeCode" codeListValue="vector" codeSpace="ISOTC211/19115">vector</MD_SpatialRepresentationTypeCode>
+      </spatialRepresentationType>
+      <language>
+        <LanguageCode codeList="http://www.loc.gov/standards/iso639-2/php/code_list.php" codeListValue="eng" codeSpace="ISO639-2">eng</LanguageCode>
+      </language>
+      <characterSet>
+        <MD_CharacterSetCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8" codeSpace="ISOTC211/19115">utf8</MD_CharacterSetCode>
+      </characterSet>
+      <topicCategory>
+        <MD_TopicCategoryCode>structure</MD_TopicCategoryCode>
+      </topicCategory>
+      <topicCategory>
+        <MD_TopicCategoryCode>transportation</MD_TopicCategoryCode>
+      </topicCategory>
+      <environmentDescription>
+        <gco:CharacterString>Microsoft Windows 7 Version 6.1 (Build 7601) Service Pack 1; Esri ArcGIS 10.3.1.4959</gco:CharacterString>
+      </environmentDescription>
+      <extent>
+        <EX_Extent>
+          <description>
+            <gco:CharacterString>City of New York</gco:CharacterString>
+          </description>
+          <geographicElement>
+            <EX_GeographicBoundingBox>
+              <extentTypeCode>
+                <gco:Boolean>true</gco:Boolean>
+              </extentTypeCode>
+              <westBoundLongitude>
+                <gco:Decimal>-74.040963</gco:Decimal>
+              </westBoundLongitude>
+              <eastBoundLongitude>
+                <gco:Decimal>-73.779182</gco:Decimal>
+              </eastBoundLongitude>
+              <southBoundLatitude>
+                <gco:Decimal>40.572425</gco:Decimal>
+              </southBoundLatitude>
+              <northBoundLatitude>
+                <gco:Decimal>40.762565</gco:Decimal>
+              </northBoundLatitude>
+            </EX_GeographicBoundingBox>
+          </geographicElement>
+          <temporalElement>
+            <EX_TemporalExtent>
+              <extent>
+                <gml:TimePeriod gml:id="ID0EIIAC">
+                  <gml:beginPosition>2017-08-23T00:00:00</gml:beginPosition>
+                  <gml:endPosition indeterminatePosition="unknown" />
+                </gml:TimePeriod>
+              </extent>
+            </EX_TemporalExtent>
+          </temporalElement>
+        </EX_Extent>
+      </extent>
+      <extent>
+        <EX_Extent>
+          <geographicElement>
+            <EX_GeographicBoundingBox>
+              <extentTypeCode>
+                <gco:Boolean>true</gco:Boolean>
+              </extentTypeCode>
+              <westBoundLongitude>
+                <gco:Decimal>-74.253551</gco:Decimal>
+              </westBoundLongitude>
+              <eastBoundLongitude>
+                <gco:Decimal>-73.700679</gco:Decimal>
+              </eastBoundLongitude>
+              <southBoundLatitude>
+                <gco:Decimal>40.502872</gco:Decimal>
+              </southBoundLatitude>
+              <northBoundLatitude>
+                <gco:Decimal>40.912418</gco:Decimal>
+              </northBoundLatitude>
+            </EX_GeographicBoundingBox>
+          </geographicElement>
+        </EX_Extent>
+      </extent>
+      <supplementalInformation>
+        <gco:CharacterString>The GEOID field contains the ANSI / FIPS state-county code that indicates the location of the feature.</gco:CharacterString>
+      </supplementalInformation>
+    </MD_DataIdentification>
+  </identificationInfo>
+  <distributionInfo>
+    <MD_Distribution>
+      <distributionFormat>
+        <MD_Format>
+          <name>
+            <gco:CharacterString>Shapefile</gco:CharacterString>
+          </name>
+          <version gco:nilReason="missing" />
+        </MD_Format>
+      </distributionFormat>
+      <distributor>
+        <MD_Distributor>
+          <distributorContact>
+            <CI_ResponsibleParty>
+              <organisationName>
+                <gco:CharacterString>Newman Library, Baruch CUNY</gco:CharacterString>
+              </organisationName>
+              <positionName>
+                <gco:CharacterString>Geospatial Data Librarian</gco:CharacterString>
+              </positionName>
+              <contactInfo>
+                <CI_Contact>
+                  <address>
+                    <CI_Address>
+                      <deliveryPoint>
+                        <gco:CharacterString>Newman Library, Baruch CUNY</gco:CharacterString>
+                      </deliveryPoint>
+                      <deliveryPoint>
+                        <gco:CharacterString>151 E 25th St Box H-0520</gco:CharacterString>
+                      </deliveryPoint>
+                      <city>
+                        <gco:CharacterString>New York</gco:CharacterString>
+                      </city>
+                      <administrativeArea>
+                        <gco:CharacterString>NY</gco:CharacterString>
+                      </administrativeArea>
+                      <postalCode>
+                        <gco:CharacterString>10010</gco:CharacterString>
+                      </postalCode>
+                      <country>
+                        <Country codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US" codeSpace="ISO3166-1">US</Country>
+                      </country>
+                    </CI_Address>
+                  </address>
+                </CI_Contact>
+              </contactInfo>
+              <role>
+                <CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact" codeSpace="ISOTC211/19115">pointOfContact</CI_RoleCode>
+              </role>
+            </CI_ResponsibleParty>
+          </distributorContact>
+        </MD_Distributor>
+      </distributor>
+      <transferOptions>
+        <MD_DigitalTransferOptions>
+          <transferSize>
+            <gco:Real>0.126</gco:Real>
+          </transferSize>
+        </MD_DigitalTransferOptions>
+      </transferOptions>
+    </MD_Distribution>
+  </distributionInfo>
+  <dataQualityInfo>
+    <DQ_DataQuality>
+      <scope>
+        <DQ_Scope>
+          <level>
+            <MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset" codeSpace="ISOTC211/19115">dataset</MD_ScopeCode>
+          </level>
+        </DQ_Scope>
+      </scope>
+      <lineage>
+        <LI_Lineage>
+          <statement>
+            <gco:CharacterString>This point layer was created using the data feeds from the Metropolitan Transportation Authority (MTA). The MTA provides text files that contain route information in a General Transit Feed Specification (GTFS) format, and are geographically referenced so they are able to be plotted. A python script was written to take the text files for each borough as input, process them and create a spatial layer for entire New York City. The text files used for point geometry creation are 'stops.txt' and they provides geographically referenced data for the stops in the form of points. Information from additional files, stop_times.txt and trips.txt was joined to the created geomtery based on common field to obtain an id of the routes that stop at the bus station. The route id was used to separate local bus routes stops from stops for express bus routes. Stops that are shared by both local and express busses were duplicated so that they appear in both files. Counties from the Census TIGER files were spatially joined to the bus stops, so that every bus stop is assigned the state-county ANSI FIPS code (GEOID) to indicate its location. Stops for each borough were joined into a single New York City stops layer. The final layer was reprojected from NAD 83 to NY State Plane Long Island in feet and saved in a shapefile format. The unique ID is stop_id, a field created by the MTA. This layer was created as part of the NYC Mass Transit Spatial Layers series, and is updated biannually to account for changes in the transit system.</gco:CharacterString>
+          </statement>
+          <source>
+            <LI_Source>
+              <description>
+                <gco:CharacterString>Metropolitan Transportation Authority</gco:CharacterString>
+              </description>
+              <sourceCitation>
+                <CI_Citation>
+                  <title>
+                    <gco:CharacterString>MTA NYC Transit Stops File</gco:CharacterString>
+                  </title>
+                  <date>
+                    <CI_Date>
+                      <date>
+                        <gco:Date>2017-08-23</gco:Date>
+                      </date>
+                      <dateType>
+                        <CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" codeSpace="ISOTC211/19115">publication</CI_DateTypeCode>
+                      </dateType>
+                    </CI_Date>
+                  </date>
+                  <citedResponsibleParty gco:nilReason="missing" />
+                </CI_Citation>
+              </sourceCitation>
+            </LI_Source>
+          </source>
+          <source>
+            <LI_Source>
+              <description>
+                <gco:CharacterString>US Census 2014 TIGER Line Shapefiles</gco:CharacterString>
+              </description>
+              <sourceCitation>
+                <CI_Citation>
+                  <title>
+                    <gco:CharacterString>US Census 2014 TIGER Line Shapefiles</gco:CharacterString>
+                  </title>
+                  <date>
+                    <CI_Date>
+                      <date>
+                        <gco:Date>2014-08-19</gco:Date>
+                      </date>
+                      <dateType>
+                        <CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" codeSpace="ISOTC211/19115">publication</CI_DateTypeCode>
+                      </dateType>
+                    </CI_Date>
+                  </date>
+                  <citedResponsibleParty gco:nilReason="missing" />
+                </CI_Citation>
+              </sourceCitation>
+            </LI_Source>
+          </source>
+        </LI_Lineage>
+      </lineage>
+    </DQ_DataQuality>
+  </dataQualityInfo>
+  <metadataConstraints>
+    <MD_Constraints>
+      <useLimitation>
+        <gco:CharacterString>Metadata for this layer is licensed under a Creative Commons Attribution-NonCommercial license CC BY-NC http://creativecommons.org/licenses/by-nc/4.0/. You are free to share and to adapt the metadata as long as you cite the source and do not use it for commercial purposes.</gco:CharacterString>
+      </useLimitation>
+    </MD_Constraints>
+  </metadataConstraints>
+  <metadataConstraints>
+    <MD_LegalConstraints>
+      <accessConstraints>
+        <MD_RestrictionCode codeList="http://www.fgdc.gov/nap/metadata/register/codelists.html#napMD_RestrictionCode" codeListValue="licenseUnrestricted" codeSpace="ISOTC211/19139/NAP">licenseUnrestricted</MD_RestrictionCode>
+      </accessConstraints>
+      <useConstraints>
+        <MD_RestrictionCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_RestrictionCode" codeListValue="license" codeSpace="ISOTC211/19115">license</MD_RestrictionCode>
+      </useConstraints>
+    </MD_LegalConstraints>
+  </metadataConstraints>
+  <metadataMaintenance>
+    <MD_MaintenanceInformation>
+      <maintenanceAndUpdateFrequency>
+        <MD_MaintenanceFrequencyCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_MaintenanceFrequencyCode" codeListValue="biannually" codeSpace="ISOTC211/19115">biannually</MD_MaintenanceFrequencyCode>
+      </maintenanceAndUpdateFrequency>
+      <maintenanceNote>
+        <gco:CharacterString>This metadata record was updated by Janine Billadello in August 2017.</gco:CharacterString>
+      </maintenanceNote>
+    </MD_MaintenanceInformation>
+  </metadataMaintenance>
+</MD_Metadata>

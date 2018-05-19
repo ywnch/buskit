@@ -48,31 +48,60 @@ except ImportError:
     from urllib.parse import urlencode
     from io import BytesIO as io
 
+def plot_1D(df, figsize=(20,6), save=False, fname='1D'):
+    stops_x = df['CallDistanceAlongRoute'].unique()
+    stops_y = [0] * len(stops_x)
 
-def df_process(df, direction):
-    """ Pre-process data for plotting"""
-    df = df[df['DirectionRef'] == direction]
-    df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime'])
-    return df
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(111)
+    ax.plot(stops_x, stops_y, 'o-', color='steelblue', markersize=5)
 
-### this function is to be removed in future ###
-def df_addts(df):
-    """ this bloc generate a timestep sequence for psuedo real-time simulation """
-    mod = list(df['Unnamed: 0'])
-    tiempo = 0
-    ts = []
-    for i,v in enumerate(mod[:-1]):
-        ts.append(tiempo)
-        if mod[i+1] < mod[i]:
-            tiempo += 30
-        else:
-            continue
-    ts.append(ts[-1])
-    df['ts'] = ts
-    return df
+    # save figure locally if specified
+    if save:
+        plt.savefig("%s.png"%(fname), dpi=300)
+    else:
+        pass
+    plt.show()
 
-def dash_hist(df, route_shp):
-    time_coef = 100
+    return fig, ax
+
+def plot_2D(df, basemap=False, figsize=(10,10), save=False, fname='2D'):
+    # specify line and direction query
+    linename = df['PublishedLineName'].unique()[0]
+    direction = df['DirectionRef'].unique()[0]
+
+    # read route shapefile
+    gdf = gpd.read_file("MTA_shp/bus_routes_nyc_aug2017.shp")
+    gdf.to_crs(epsg=4326, inplace=True)
+
+    # plot route
+    route_shp = gdf[gdf['route_dir'] == '%s_%s'%(linename, direction)]
+    route_shp.plot(color='red', figsize=figsize)
+
+    # save figure locally if specified
+    if save:
+        plt.savefig("%s.png"%(fname), dpi=300)
+    else:
+        pass
+
+    # plot on a basemap or not
+    # requires "mplleaflet" package
+    if basemap:
+        mlf.display()
+    else:
+        plt.show()
+
+def dash_hist(df, time_coef=100):
+    # specify line and direction query
+    linename = df['PublishedLineName'].unique()[0]
+    direction = df['DirectionRef'].unique()[0]
+
+    # read route shapefile
+    gdf = gpd.read_file("MTA_shp/bus_routes_nyc_aug2017.shp")
+    gdf.to_crs(epsg=4326, inplace=True)
+
+    # plot route
+    route_shp = gdf[gdf['route_dir'] == '%s_%s'%(linename, direction)]
 
     # plot figure
     fig = plt.figure(figsize=(18,11))
@@ -84,9 +113,9 @@ def dash_hist(df, route_shp):
     stops = df['CallDistanceAlongRoute'].unique()
     left = [df['RecordedAtTime'].min()] * 12
     right = [df['RecordedAtTime'].max()] * 12
-    ax.plot([left, right], [stops, stops], color='gray', alpha=0.2);
+    ax1.plot([left, right], [stops, stops], color='gray', alpha=0.2);
 
-    p0, = ax1.plot([], [], '-', color='steelblue')
+    p0, = ax1.plot([], [], '-', color='steelblue') ##### redundant? #####
 
     ax1.grid()
     ax1.set_xlabel("time", fontsize=14)
@@ -145,14 +174,15 @@ def dash_hist(df, route_shp):
         print("Timestep: %s"%(i))
         time.sleep(1/time_coef)
         
-def plot_headway(df, lineref, stop_no):
-    df2 = df.sort_values(['CallDistanceAlongRoute', 'RecordedAtTime'])
+def plot_headway(df, stop_no):
+    df = df.sort_values(['CallDistanceAlongRoute', 'RecordedAtTime'])
+    linename = df['PublishedLineName'].unique()[0]
     
-    stops = df2['CallDistanceAlongRoute'].unique() # a list stops (their 1-D distance along route)
-    stopname = df2[df2['CallDistanceAlongRoute'] == stops[stop_no]]['StopPointName'].iloc[0]
+    stops = df['CallDistanceAlongRoute'].unique() # a list stops (their 1-D distance along route)
+    stopname = df[df['CallDistanceAlongRoute'] == stops[stop_no]]['StopPointName'].iloc[0]
     
     # subset every vehicle that passed the stop
-    stop = df2[df2['CallDistanceAlongRoute'] == stops[stop_no]].drop_duplicates('VehicleRef', keep='last')
+    stop = df[df['CallDistanceAlongRoute'] == stops[stop_no]].drop_duplicates('VehicleRef', keep='last')
     # calculate differences between each vehicle (in seconds)
     hws = stop['RecordedAtTime'].diff().astype('timedelta64[m]') + (stop['RecordedAtTime'].diff().astype('timedelta64[s]') % 60) / 60
 
@@ -163,7 +193,7 @@ def plot_headway(df, lineref, stop_no):
     ax.bar(range(-1,len(hws)-1), hws, align='edge')
     ax.set_xticks(range(len(hws)))
     
-    plt.title("Headways at Stop %s on Route %s"%(stopname, lineref), fontsize=18)
+    plt.title("Headways at Stop %s on Route %s"%(stopname, linename), fontsize=18)
     plt.xlabel("No. of Vehicle (Chronological)", fontsize=14)
     plt.ylabel("Headway (minutes)", fontsize=14)
     plt.show()
