@@ -10,6 +10,7 @@ NOTES.md
 # Local folders
 __pycache__/
 archive/
+admin/
 issue/
 literature/
 MTA_GTFS/

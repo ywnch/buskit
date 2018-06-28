@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='buskit',
-      version='1.0.0.dev1',
+      version='1.0.0.dev2',
       description='Bus data analytics and simulation toolkit',
       url='https://github.com/ywnch/BusSimulator',
       author='Yuwen Chang',

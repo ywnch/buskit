@@ -85,7 +85,7 @@ For more examples, see [example](example_busdata.ipynb).
 
 ## Current Output
 
-1. Currently, we may use the `bus_data` function to fetch data of a specified route and direction at a given time window and then plot the time-space diagram with the `plot_tsd` function, both functions can be found in `fetchbus.py`. Below is a sample time-space diagram. (the x-axis is plot by recorded time instead, not time elapsed as shown here)
+1. Currently, we may use the `stream_bus` function to fetch data of a specified route and direction at a given time window and then plot the time-space diagram with the `plot_tsd` function, both functions can be found in `busdata.py`. Below is a sample time-space diagram. (the x-axis is plot by recorded time instead, not time elapsed as shown here)
 
 ![Sample Time-space Diagram](figtab/TSD_v2.png)
 

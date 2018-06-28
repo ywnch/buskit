@@ -86,11 +86,11 @@ def stream_bus(apikey, linename, duration=5):
     # name the output csv file
     ts = datetime.now()
     dow = calendar.day_name[ts.weekday()][:3]
-    filename = '%s-%s-%s-%s.csv'%(linename, ts.strftime('%y%m%d-%H%M%S'), duration, dow)
+    filename = '%s-%s-%s-%s.csv'%(linename, ts.strftime('%y%m%d-%H%M%S'), round(duration), dow)
     
     # set up parameters
     t_elapsed = 0 # timer
-    duration = int(duration) * 60 # minutes to seconds
+    duration = duration * 60 # minutes to seconds
     url = "http://bustime.mta.info/api/siri/vehicle-monitoring.json?key=%s&VehicleMonitoringDetailLevel=calls&LineRef=%s"%(apikey, linename)
     df = pd.DataFrame() # empty dataframe
     

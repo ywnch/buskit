@@ -92,87 +92,90 @@ def plot_2D(df, basemap=False, figsize=(10,10), save=False, fname='2D'):
         plt.show()
 
 def dash_hist(df, time_coef=100):
-    # specify line and direction query
-    linename = df['PublishedLineName'].unique()[0]
-    direction = df['DirectionRef'].unique()[0]
+    try:
+        # specify line and direction query
+        linename = df['PublishedLineName'].unique()[0]
+        direction = df['DirectionRef'].unique()[0]
 
-    # read route shapefile
-    gdf = gpd.read_file("MTA_shp/bus_routes_nyc_aug2017.shp")
-    gdf.to_crs(epsg=4326, inplace=True)
+        # read route shapefile
+        gdf = gpd.read_file("MTA_shp/bus_routes_nyc_aug2017.shp")
+        gdf.to_crs(epsg=4326, inplace=True)
 
-    # plot route
-    route_shp = gdf[gdf['route_dir'] == '%s_%s'%(linename, direction)]
+        # plot route
+        route_shp = gdf[gdf['route_dir'] == '%s_%s'%(linename, direction)]
 
-    # plot figure
-    fig = plt.figure(figsize=(18,11))
-    ax1 = fig.add_subplot(221)
-    ax2 = fig.add_subplot(222)
-    ax3 = fig.add_subplot(212)
+        # plot figure
+        fig = plt.figure(figsize=(18,11))
+        ax1 = fig.add_subplot(221)
+        ax2 = fig.add_subplot(222)
+        ax3 = fig.add_subplot(212)
 
-    # plot CallDistanceAlongRoute (bus stops)
-    stops = df['CallDistanceAlongRoute'].unique()
-    left = [df['RecordedAtTime'].min()] * 12
-    right = [df['RecordedAtTime'].max()] * 12
-    ax1.plot([left, right], [stops, stops], color='gray', alpha=0.2);
+        # plot CallDistanceAlongRoute (bus stops)
+        stops = df['CallDistanceAlongRoute'].unique()
+        left = [df['RecordedAtTime'].min()] * 12
+        right = [df['RecordedAtTime'].max()] * 12
+        ax1.plot([left, right], [stops, stops], color='gray', alpha=0.2);
 
-    p0, = ax1.plot([], [], '-', color='steelblue') ##### redundant? #####
+        p0, = ax1.plot([], [], '-', color='steelblue') ##### redundant? #####
 
-    ax1.grid()
-    ax1.set_xlabel("time", fontsize=14)
-    ax1.set_ylabel("Distance along route (m)", fontsize=14)
-    ax1.set_title("Time-space Diagram", fontsize=16)
+        ax1.grid()
+        ax1.set_xlabel("time", fontsize=14)
+        ax1.set_ylabel("Distance along route (m)", fontsize=14)
+        ax1.set_title("Time-space Diagram", fontsize=16)
 
-    # plot route shape on map (2-D)
-    route_shp.plot(ax=ax2)
-    p1, = ax2.plot([], [], 'o', color='lawngreen')
-    p2, = ax2.plot([], [], 'o', color='indianred')
+        # plot route shape on map (2-D)
+        route_shp.plot(ax=ax2)
+        p1, = ax2.plot([], [], 'o', color='lawngreen')
+        p2, = ax2.plot([], [], 'o', color='indianred')
 
-    ax2.set_ylabel("Latitude", fontsize=14)
-    ax2.set_xlabel("Longitude", fontsize=14)
-    ax2.set_title("Active Vehicles on Route (Map)", fontsize=16)
+        ax2.set_ylabel("Latitude", fontsize=14)
+        ax2.set_xlabel("Longitude", fontsize=14)
+        ax2.set_title("Active Vehicles on Route (Map)", fontsize=16)
 
-    # plot dynamic route line (1-D)
-    ax3.plot(df['CallDistanceAlongRoute'], [0]*len(df), '.-', color='steelblue')
-    p3, = ax3.plot([], [], 'o', color='lawngreen')
-    p4, = ax3.plot([], [], 'o', color='indianred')
+        # plot dynamic route line (1-D)
+        ax3.plot(df['CallDistanceAlongRoute'], [0]*len(df), '.-', color='steelblue')
+        p3, = ax3.plot([], [], 'o', color='lawngreen')
+        p4, = ax3.plot([], [], 'o', color='indianred')
 
-    ax3.set_yticks([])
-    ax3.set_xlabel("Distance along route (m)", fontsize=14)
-    ax3.set_title("Active Vehicles on Route (1-D)", fontsize=16)
+        ax3.set_yticks([])
+        ax3.set_xlabel("Distance along route (m)", fontsize=14)
+        ax3.set_title("Active Vehicles on Route (1-D)", fontsize=16)
 
-    plt.suptitle("Streaming Bus Trajectories for Route M1", fontsize=22)
+        plt.suptitle("Streaming Bus Trajectories for Route M1", fontsize=22)
 
-    # update
-    for i in range(0,df['ts'].max(),30):
-    #for i in range(0,1500,30): # just do partial for demo
-        df3 = df[df['ts'] == i]
-        df1 = df[df['ts'] <= i]
+        # update
+        for i in range(0,df['ts'].max(),30):
+        #for i in range(0,1500,30): # just do partial for demo
+            df3 = df[df['ts'] == i]
+            df1 = df[df['ts'] <= i]
 
-        # mark vehicles that are bunching 
-        df3.sort_values(['VehDistAlongRoute'], inplace=True)
-        spacing = np.diff(df3['VehDistAlongRoute'])
-        bunch = spacing < 100 # set threshold (meters) to be identified as BB
-        bunch_a = np.array([False] + list(bunch))
-        bunch_b = np.array(list(bunch) + [False])
-        bunch = bunch_a + bunch_b
-        bb_df = df3[bunch]
+            # mark vehicles that are bunching 
+            df3.sort_values(['VehDistAlongRoute'], inplace=True)
+            spacing = np.diff(df3['VehDistAlongRoute'])
+            bunch = spacing < 100 # set threshold (meters) to be identified as BB
+            bunch_a = np.array([False] + list(bunch))
+            bunch_b = np.array(list(bunch) + [False])
+            bunch = bunch_a + bunch_b
+            bb_df = df3[bunch]
 
-        # plot TSD for each vehicle
-        for i, v in enumerate(df1['VehicleRef'].unique()):
-            # subset data for single vehicle
-            veh_df = df1[df1['VehicleRef'] == v]
-            ax1.plot(veh_df['RecordedAtTime'], veh_df['VehDistAlongRoute'], '-', color='steelblue', alpha=0.5)
-            ax1.plot(bb_df['RecordedAtTime'], bb_df['VehDistAlongRoute'], 'o', color='indianred', alpha=0.5)
-            #ax1.annotate('%s'%v.split("_")[1], (list(veh_df['RecordedAtTime'])[0],list(veh_df['VehDistAlongRoute'])[0]))
+            # plot TSD for each vehicle
+            for i, v in enumerate(df1['VehicleRef'].unique()):
+                # subset data for single vehicle
+                veh_df = df1[df1['VehicleRef'] == v]
+                ax1.plot(veh_df['RecordedAtTime'], veh_df['VehDistAlongRoute'], '-', color='steelblue', alpha=0.5)
+                ax1.plot(bb_df['RecordedAtTime'], bb_df['VehDistAlongRoute'], 'o', color='indianred', alpha=0.5)
+                #ax1.annotate('%s'%v.split("_")[1], (list(veh_df['RecordedAtTime'])[0],list(veh_df['VehDistAlongRoute'])[0]))
 
-        p1.set_data(df3['Longitude'], df3['Latitude'])
-        p2.set_data(bb_df['Longitude'], bb_df['Latitude'])
-        p3.set_data(df3['VehDistAlongRoute'], [0]*len(df3))
-        p4.set_data(bb_df['VehDistAlongRoute'], [0]*len(bb_df))
-        clear_output(wait=True)
-        display(fig)
-        print("Timestep: %s"%(i))
-        time.sleep(1/time_coef)
+            p1.set_data(df3['Longitude'], df3['Latitude'])
+            p2.set_data(bb_df['Longitude'], bb_df['Latitude'])
+            p3.set_data(df3['VehDistAlongRoute'], [0]*len(df3))
+            p4.set_data(bb_df['VehDistAlongRoute'], [0]*len(bb_df))
+            clear_output(wait=True)
+            display(fig)
+            print("Timestep: %s"%(i))
+            time.sleep(1/time_coef)
+    except KeyboardInterrupt:
+        print("Interrupted")
         
 def plot_headway(df, stop_no):
     df = df.sort_values(['CallDistanceAlongRoute', 'RecordedAtTime'])
