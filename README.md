@@ -4,7 +4,7 @@
 
 Author: Yuwen Chang (M.S. at NYU CUSP 2018)
 
-Project of [BUILT@NYU](https://github.com/BUILTNYU) led by Prof. Joseph Chow
+Project affiliated with [BUILT@NYU](https://github.com/BUILTNYU) led by Prof. Joseph Chow
 
 ## This toolkit is meant to be…
 
@@ -181,6 +181,11 @@ For more examples, see [example](example_busdata.ipynb).
 [180518]
 
 - Now registered on PyPI as `buskit` ([version 1.0.0.dev1](https://pypi.org/project/buskit/))
+
+[180629]
+
+- Major update of simulator
+  - now able to stream in historical archive data (see [notebook](developer_simulation.ipynb))
 
 ## References
 
