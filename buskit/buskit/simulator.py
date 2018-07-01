@@ -1,5 +1,5 @@
 # Author: Yuwen Chang, NYU CUSP
-# Last Updated: 2018/05/16
+# Last Updated: 2018/06/30
 ##############################
 # Code written for Bus Simulator
 # https://github.com/ywnch/BusSimulator
@@ -82,7 +82,7 @@ def stream_next(data, live_bus):
             update_bus(bus, ref, pos, live_bus)
     return live_bus
 
-def load_archive(filename, dir_ref):
+def load_archive(filename, direction=0):
     """
     stream in data batch by batch from given archive data
     """
@@ -101,13 +101,13 @@ def load_archive(filename, dir_ref):
                 batch = []
 
             # collect pings from the same batch
-            if row['DirectionRef'] == str(dir_ref):
+            if row['DirectionRef'] == str(direction):
                 batch.append(row)
                 
             # update item number
             item = new_item
 
-def read_data(filename, direction=0):
+def load_stops(filename, direction=0):
     """
     read stop and speed from data created by fetchbus.py
     """
@@ -171,7 +171,7 @@ if beta:
     stop_name = np.array(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
 else:
     # historical data
-    stop_ref, stop_pos, stop_name = read_data(archive_path, 1)
+    stop_ref, stop_pos, stop_name = load_stops(archive_path, 1)
 
 # speed and travel time data are currently artificial
 link_vel = 1.5 * np.random.randn(len(stop_pos)) + 7 # make sure the unit is m/sec
