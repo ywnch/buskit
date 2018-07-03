@@ -27,6 +27,7 @@ from shapely.geometry import Point
 
 import time
 import calendar
+import dateutil
 from datetime import datetime
 
 import collections
@@ -52,6 +53,7 @@ except ImportError:
 def remove_inactive(batch, live_bus):
     """
     remove buses from live_bus absent in the new stream batch
+    FUTURE: also remove ones that reaches the last stop
     """
     new_refs = [bus['VehicleRef'] for bus in batch]
     for ref in list(live_bus.keys()):
@@ -59,7 +61,7 @@ def remove_inactive(batch, live_bus):
             del live_bus[ref]
     return live_bus
 
-def update_bus(new, ref, pos, live_bus):
+def update_bus(new, ref, pos, time, live_bus, stop_pos):
     """
     DEVELOPING
     """
@@ -67,19 +69,31 @@ def update_bus(new, ref, pos, live_bus):
         if bus.ref == ref:
             bus.pos = pos
 
-def stream_next(data, live_bus):
+def stream_next(data, live_bus, stop_pos):
+    """
+    major function for stream update
+    data: streaming data, i.e., archive generator through load_archive() or live feed
+    live_bus: currently active dictionary of bus objects
+    """
+    # read next batch of streaming data
     batch = next(data)
+    # remove buses that did not show up in new batch
     live_bus = remove_inactive(batch, live_bus)
+
     for bus in batch:
         ref = bus['VehicleRef']
         pos = float(bus['VehDistAlongRoute'])
+        time = dateutil.parser.parse(bus['RecordedAtTime'])
+        new = Bus(ref, pos, time, stop_pos)
 #         bus_ref = [bus.ref for bus in live_bus]
         bus_ref = live_bus.keys()
 
+        # add buses that did not show up in existing set
         if ref not in bus_ref:
-            live_bus[ref] = Bus(ref, pos)
+            live_bus[ref] = new
+        # update bus and link information between two pings
         else:
-            update_bus(bus, ref, pos, live_bus)
+            update_bus(new, live_bus)
     return live_bus
 
 def load_archive(filename, direction=0):
@@ -123,8 +137,6 @@ def load_stops(filename, direction=0):
     stop_pos = np.array(data['CallDistanceAlongRoute'])
     stop_name = np.array(data['StopPointName'])
     
-    stop_pos -= stop_pos[0] # reset first stop to 0 ### TEMPORARY MEASURE ###
-    
     # read LTT or speed
     ### CURRENTLY UNAVAILABLE ###
     
@@ -132,6 +144,104 @@ def load_stops(filename, direction=0):
     ### CURRENTLY UNAVAILABLE ###
     
     return stop_ref, stop_pos, stop_name
+
+###############
+# ROUTE SETUP #
+###############
+
+def set_stops(filename, direction=0):
+    stops = {}
+    stop_ref, stop_pos, stop_name = load_stops(filename, direction)
+    for i in np.arange(len(stop_ref)):
+        stops[i] = Stop(i, stop_ref[i], stop_pos[i], stop_name[i])
+    return stops, stop_pos
+
+def set_links(stops):
+    links = {}
+    for k, v in stops.items():
+        links[k] = Link(k, v.ref)
+    return links
+
+def set_route(filename, direction=0):
+    """
+    Extract stop information from archive and generate stops and links.
+    FUTURE: specify route reference.
+
+    stops: a dictionary of Stop objects along the route
+    links: a dictionary of Link objects along the route
+    stop_pos: an array of stop distances along the route
+    """
+    stops, stop_pos = set_stops(filename, direction)
+    links = set_links(stops)
+    return stops, links, stop_pos
+
+
+################
+# OBJECT SETUP #
+################
+
+class Stop(object):
+
+    def __init__(self, idx, ref, pos, name):
+        self.idx = idx # link index
+        self.ref = ref # stop reference
+        self.pos = pos # stop location (1-D)
+        self.name = name # stop name
+#         self.link = list(stop_ref).index(self.ref) # link index starts from 0
+        self.clock = 0
+
+        self.log_pax = [0]
+        self.log_wait_t = [0]
+
+    def update_dwell(self):
+        pass
+
+class Link(object):
+    
+    def __init__(self, idx, origin):
+        self.idx = idx # link index
+        self.origin = origin # origin stop of this link
+        self.speed_window = [7, 7, 7, 7, 7]
+        self.speed = 7
+        
+    def update_speed(self, new):
+        self.speed_window.pop(0)
+        self.speed_window.append(new)
+        self.speed = np.mean(self.speed_window)
+
+# Bus class
+class Bus(object):
+    
+    capacity = 60
+    seat = 40
+    stop_range = 100
+    
+    def __init__(self, ref, pos, time, stop_pos):
+        self.ref = ref # vehicle reference
+        self.pos = pos # vehicle location (1-D)
+        self.time = time # timestamp
+        self.stop_pos = stop_pos ##### IS IT POSSIBLE TO MAKE THIS GLOBAL INSTEAD? #####
+        self.link = sum(self.pos > self.stop_pos) - 1 # link index the bus is at
+        # at stop if within specified range of a stop
+        # at_prev if pos is ahead of the closest stop (in range)
+        self.at_prev = self.pos - self.stop_pos[self.link] <= stop_range
+        # at_next if pos is before the closest stop (in range)
+        self.at_next = self.pos - self.stop_pos[self.link+1] >= -stop_range
+        # at stop if either at_prev or at_next
+        self.at_stop = at_prev or at_next
+        ##### CONSIDER SIMPLIFYING THE ABOVE AS A SINGLE "NONE" or "INDEX" ATTRIBUTE #####
+
+        # assign stop index that the bus is at
+        ##### CURRENTLY IGNORING OVERLAPPING CASES #####
+        if at_stop:
+            if at_next:
+                self.at_stop_idx = link + 1
+            else:
+                self.at_stop_idx = link
+
+#############
+# ANALYTICS #
+#############
 
 def bus_tsd(bus):
     plt.figure(figsize=(10,6))
@@ -148,123 +258,3 @@ def stop_pax(stop):
     plt.xlabel("Timestep (second)", fontsize=14)
     plt.ylabel("Waiting Passengers", fontsize=14)
     plt.show()
-
-
-
-############ THIS PART IS TEMPORARY ############
-
-# specify path to archive AVL file
-archive_path = '/Users/Yuwen/Dropbox/work_BusSimulator/MTA_data/B15-180625-235941-44650-Mon.csv'
-
-# determine data source
-beta = False
-
-time_coef = 100000 # simulation time is __ times faster than the reality
-avg_door_t = 5 # assume opening and closing the door take 5 seconds in total
-avg_board_t = 3 # assume each boarding takes 3 sec
-avg_alight_t = 2 # assume each alight takes 2 sec
-
-if beta:
-    # artificial data   ### make this part automatized with given number of stop
-    stop_ref = np.array([1, 2, 3, 4, 5, 6, 7])
-    stop_pos = np.array([0, 100, 200, 300, 400, 500, 600])
-    stop_name = np.array(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
-else:
-    # historical data
-    stop_ref, stop_pos, stop_name = load_stops(archive_path, 1)
-
-# speed and travel time data are currently artificial
-link_vel = 1.5 * np.random.randn(len(stop_pos)) + 7 # make sure the unit is m/sec
-#dwell_t = 7 * np.random.randn(len(stop_pos)) + 20 # make sure the unit is sec
-
-# pax distribution
-stop_pos_next = np.append(stop_pos, stop_pos[-1])[1:]
-
-pos_mu = stop_pos.mean()
-pos_std = stop_pos.std()
-pax_norm = ss.norm(loc=pos_mu, scale=pos_std)
-pax_perc = np.array([pax_norm.cdf(stop_pos_next[i]) - pax_norm.cdf(stop_pos[i]) for i in range(len(stop_pos))]) ### a temporary measure ###
-
-pax_hr_route = 5000
-pax_hr_stop = pax_hr_route * pax_perc
-pax_at_stop = np.zeros(len(stop_pos))
-
-
-# Bus class
-class Bus(object):
-    
-    capacity = 60
-    seat = 40
-    
-    def __init__(self, ref, pos=0):
-        self.ref = ref # vehicle reference
-        self.pos = pos # vehicle location (1-D)
-        
-        ############### fix this: stop_pos, link, vel, next_stop should not require pre-specify, how? ##############
-        
-        self.link = np.sum(self.pos >= stop_pos) - 1 # link index starts from 0  ### unified with the formula in Stop Class
-        self.vel = link_vel[self.link] # speed at current link
-        self.next_stop = stop_pos[self.link + 1] # position of next stop
-        self.dwell_t = 0
-        self.pax = 0
-        self.clock = 0
-        self.operate = True
-        self.atstop = False
-        
-        self.log_pos = [self.pos]
-        self.log_vel = [self.vel]
-        self.log_pax = [0]
-        self.log_dwell = [0]
-
-    def terminal(self):
-        print("The bus has reached the terminal")
-        self.operate = False
-        self.vel = 0
-        self.pax = 0
-        
-    def stop(self):
-        print("Bus %s is making a stop at %s (position %i)"%(self.ref, stop_name[self.link + 1], self.next_stop))
-        self.atstop = True
-        self.pax_to_board = pax_at_stop[self.link + 1] # check how many pax at stop
-        self.board_t = self.pax * avg_board_t
-        self.alight_t = 0 * avg_alight_t  #### TO DEVELOP
-        self.dwell_t = avg_door_t + self.alight_t + self.board_t # supposed to dwell for this long
-        self.clock += 1
-
-#         self.vel = 0
-#         self.pos += self.vel
-        self.record()
-
-    def move(self):
-        pax_at_stop[self.link + 1] = 0 # clear all pax at stop
-        self.log_dwell.append(self.dwell_t)
-        # move on!
-        self.atstop = False
-        self.dwell_t = 0
-        self.clock = 0
-        self.link += 1
-        self.pax = 0 # update pax onboard ###################
-        self.record()
-        self.vel = link_vel[self.link] # new link speed
-        self.next_stop = stop_pos[self.link + 1] # new next stop
-
-    def record(self):
-        self.log_pos.append(self.pos)
-        self.log_pax.append(self.pax)
-        
-    def proceed(self):
-        if self.operate:
-            if self.pos + self.vel >= stop_pos[-1]:
-                self.terminal()
-            elif self.pos + self.vel >= self.next_stop:  ### this judgement restricts from recording vel as 0 at stop, change to sth else
-                self.stop()
-                if self.clock >= self.dwell_t:
-                    self.move()
-            else:
-                print("Current position of bus %s: %i"%(self.ref, self.pos))
-                self.pos += self.vel
-                self.record()
-        else:
-            print("Bus %s is not operating."%(self.ref))
-
-############ THIS PART IS TEMPORARY ############
