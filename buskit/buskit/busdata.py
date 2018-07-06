@@ -140,7 +140,7 @@ def stream_bus(apikey, linename, duration=5):
 
         ### preprocessing ###
         # calculate vehicle distance along the route
-        df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
+        df.loc[:,'VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
 
         # write/update data to csv
         df.to_csv(filename)
@@ -188,7 +188,7 @@ def split_trips(df):
                     trip += 1 # assign new trip no.
                 NewVehicleRef.append(v + '_' + str(trip)) # each iteration, append new vehicle ref
             
-            test['NewVehicleRef'] = NewVehicleRef
+            test.loc[:,'NewVehicleRef'] = NewVehicleRef
             dfs.append(test)
         df_all = pd.concat(dfs)
         return df_all
@@ -210,12 +210,12 @@ def df_process(df, dir_ref):
     df = df[df['DirectionRef'] == dir_ref]
 
     # calculate vehicle distance along the route
-    df['VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
+    df.loc[:,'VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']
     
     # convert time format
-    df['RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime']) \
-                             .dt.tz_localize('UTC') \
-                             .dt.tz_convert('America/New_York')
+    df.loc[:,'RecordedAtTime'] = pd.to_datetime(df['RecordedAtTime']) \
+                                   .dt.tz_localize('UTC') \
+                                   .dt.tz_convert('America/New_York')
 
     return df
 
@@ -232,7 +232,7 @@ def df_addts(df):
         else:
             continue
     ts.append(ts[-1])
-    df['ts'] = ts
+    df.loc[:,'ts'] = ts
     return df
 
 # function for plotting time-space diagram
@@ -276,8 +276,10 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
 
     s = start if start_min == None else start + timedelta(minutes=start_min)
     e = end if end_min == None else start + timedelta(minutes=end_min)
-    
-    df = df[(df['RecordedAtTime'] > s) * (df['RecordedAtTime'] < e)]
+
+    bool1 = np.array(df['RecordedAtTime'] > s)
+    bool2 = np.array(df['RecordedAtTime'] < e)
+    df = df[bool1 & bool2]
     
     # check if trips are split already
     try:
@@ -291,8 +293,8 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
 
     # plot CallDistanceAlongRoute (bus stops)
     stops = df['CallDistanceAlongRoute'].unique()
-    left = [df['RecordedAtTime'].min()] * 12
-    right = [df['RecordedAtTime'].max()] * 12
+    left = [df['RecordedAtTime'].min()] * len(stops)
+    right = [df['RecordedAtTime'].max()] * len(stops)
     ax.plot([left, right], [stops, stops], color='gray', alpha=0.2);
 
     # plot the trajectory for each vehicle

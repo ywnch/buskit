@@ -11,6 +11,7 @@ Project affiliated with [BUILT@NYU](https://github.com/BUILTNYU) led by Prof. Jo
 - A **simple** and **generalized** data pipeline for bus analytics
 - A **simple** and **flexible** simulation environment for operation evaluation
 - An **adaptable** and **scalable** approach for other cities given GTFS and SIRI
+- Currently, it is specifically designed for and tested with NYC bus data (SIRI format)
 
 ## Installation
 
@@ -186,6 +187,11 @@ For more examples, see [example](example_busdata.ipynb).
 
 - Major update of simulator
   - now able to stream in historical archive data (see [notebook](developer_simulation.ipynb))
+
+[180705]
+
+- Core archive streaming workflow are now functioning ([example](example_stream-archive.ipynb))
+- First version of stream inferring is functioning with more calibration required
 
 ## References
 
