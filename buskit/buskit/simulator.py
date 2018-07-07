@@ -83,20 +83,19 @@ def stream_next(data, live_bus, stops, links, stop_pos):
     """
     major function for stream update
     data: streaming data, i.e., archive generator through load_archive() or live feed
-    live_bus: currently active dictionary of bus objects
+    live_bus: currently active dictionary of Bus objects
     """
     # read next batch of streaming data
     batch = next(data)
     # remove buses that did not show up in new batch
-    live_bus = remove_inactive(batch, live_bus)
+    live_bus = remove_inactive(batch, live_bus, sim=False)
+    bus_ref = live_bus.keys()
 
     for bus in batch:
         ref = bus['VehicleRef']
         pos = float(bus['VehDistAlongRoute'])
         time = dateutil.parser.parse(bus['RecordedAtTime'])
         new = Bus(ref, pos, time, stop_pos)
-#         bus_ref = [bus.ref for bus in live_bus]
-        bus_ref = live_bus.keys()
 
         # add buses that did not show up in existing set
         if ref not in bus_ref:
@@ -106,20 +105,54 @@ def stream_next(data, live_bus, stops, links, stop_pos):
             update_bus(new, live_bus, stops, links)
     return live_bus
 
-def remove_inactive(batch, live_bus):
+def sim_next(live_bus, active_bus, stops, links, stop_pos):
+    """
+    major function for stream update IN A SIMULATION
+    data: streaming data, i.e., archive generator through load_archive() or live feed
+    active_bus: currently active dictionary of SimBus objects
+    """
+
+    # remove buses that did not show up in new live_bus
+    ##### active_bus = remove_inactive(live_bus, active_bus, sim=True)
+    bus_ref = active_bus.keys()
+
+    for bus in live_bus.values():
+        ref = bus.ref
+        pos = bus.pos
+        time = bus.time
+        new = SimBus(ref, pos, time, stops, links, stop_pos)
+
+        # add buses that did not show up in existing set
+        if ref not in bus_ref:
+            active_bus[ref] = new
+        # update bus and link information between two pings
+        else:
+            active_bus[ref].update_info(stops, links)
+
+    return active_bus
+
+def remove_inactive(batch, live_bus, sim=False):
+    ##### CHANGE ARGS NAMING CONVENTION #####
     """
     remove buses from live_bus absent in the new stream batch
+    sim: stream_batch -> live_bus [FALSE]
+         live_bus -> active_bus [TRUE]
     FUTURE: also remove ones that reaches the last stop
     """
-    new_refs = [bus['VehicleRef'] for bus in batch]
+    if sim:
+        new_refs = [bus for bus in batch.keys()]
+    else:
+        new_refs = [bus['VehicleRef'] for bus in batch]
+
     for ref in list(live_bus.keys()):
         if ref not in new_refs:
             del live_bus[ref]
     return live_bus
 
-def update_bus(new, live_bus, stops, links):
+def update_bus(new, live_bus, stops, links, default_dwell=5):
     """
     major function for updating all the buffer information adopted by the simulator
+    default_dwell: default assumed dwelling time if the bus did not make a stop ping at stop
     """
     old = live_bus[new.ref]
     elapsed_t = new.time - old.time
@@ -138,7 +171,7 @@ def update_bus(new, live_bus, stops, links):
     # minimal dwell time for each stop passed
     else:
         # every stop that is passed by assumed to have 5 sec dwelling time
-        dwell_time = 5
+        dwell_time = default_dwell
         # traveling speed in m/s
         try:
             speed = distance / elapsed_t.total_seconds()
@@ -229,7 +262,7 @@ def set_route(filename, direction=0):
 class Stop(object):
 
     def __init__(self, idx, ref, pos, name):
-        self.idx = idx # link index
+        self.idx = idx # link index, starting from 0
         self.ref = ref # stop reference
         self.pos = pos # stop location (1-D)
         self.name = name # stop name
@@ -323,6 +356,114 @@ class Bus(object):
             else:
                 self.at_stop_idx = self.link
 
+class SimBus(object):
+
+    capacity = 60
+    seat = 40
+    
+    def __init__(self, ref, pos, time, stops, links, stop_pos):
+        self.ref = ref # vehicle reference
+        self.pos = pos # vehicle location (1-D)
+        self.time = time # timestamp
+        self.stops = stops
+        self.links = links
+        self.stop_pos = stop_pos ##### IS IT POSSIBLE TO MAKE THIS GLOBAL INSTEAD? #####
+        
+        self.link = sum(self.pos >= self.stop_pos) - 1 # link index the bus is at
+        self.next_stop = self.stop_pos[self.link + 1] # position of next stop
+        self.speed = self.links[self.link].speed # speed at current link (m/s)
+        self.dwell = 0
+        # self.pax = 0 # vehicle load
+        
+        self.clock = 0 # dwell time counter
+        self.operate = True
+        self.atstop = False
+        # self.headway = None # headway with the vehicle ahead
+        
+        self.log_pos = [self.pos]
+        self.log_speed = [self.speed]
+        self.log_dwell = [0]
+        # self.log_pax = [0]
+
+    def terminal(self):
+        print("The bus has reached the terminal.")
+        self.operate = False
+        self.speed = 0
+        self.record(self.pos, self.speed)
+        # self.pax = 0
+        
+    def reach_stop(self):
+        print("Bus %s arrives a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
+        self.atstop = True
+        # self.pax_to_board = pax_at_stop[self.link + 1] # check how many pax at stop
+        # self.board_t = self.pax * avg_board_t
+        # self.alight_t = 0 * avg_alight_t  #### TO DEVELOP
+        # self.dwell = avg_door_t + self.alight_t + self.board_t # supposed to dwell for this long
+
+        # self.speed = 0
+        self.dwell = self.stops[self.link + 1].dwell
+
+        self.record(self.pos, 0)
+        self.clock += 1
+
+    def dwell_stop(self):
+        print("Bus %s is still making a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
+        self.record(self.pos, 0)
+        self.clock += 1
+    
+    def leave_stop(self):
+        print("Bus %s departs a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
+        self.atstop = False # move on!
+        # pax_at_stop[self.link + 1] = 0 # clear all pax at stop
+        self.log_dwell.append(self.dwell)
+        
+        # reset vars
+        self.dwell = 0
+        self.clock = 0
+        self.link += 1
+        self.next_stop = self.stop_pos[self.link + 1] # new next stop
+        self.speed = self.links[self.link].speed # new link speed
+        # self.pax = 0 # update pax onboard
+        
+        self.record(self.pos, self.speed)
+
+    def record(self, pos, speed):
+        self.log_pos.append(pos)
+        self.log_speed.append(speed)
+        
+    def update_info(self, stops, links):
+        ##### use global for other functions instead? #####
+        self.stops = stops
+        self.links = links
+        
+    def proceed(self):
+        if self.operate:
+            # SCENARIO 1: reach terminal
+            if self.pos + self.speed >= self.stop_pos[-1]:
+                self.terminal()
+                
+            # SCENARIO 2: reach a stop
+            ### this judgement restricts from changing speed to 0 at stop, consider modification
+            ### because if speed = 0, this condition wont be fulfilled
+            elif self.pos + self.speed >= self.next_stop:
+                # first reach
+                if not self.atstop:
+                    self.reach_stop()
+                # still dwelling
+                else:
+                    self.dwell_stop()
+                # check if dwelling is complete
+                if self.clock >= self.dwell:
+                    self.leave_stop()
+            
+            # SCENARIO 3: reach nothing, keep moving
+            else:
+                print("Current position of bus %s: %i"%(self.ref, self.pos))
+                self.pos += self.speed
+                self.record(self.pos, self.speed)
+        else:
+            print("Bus %s is not operating."%(self.ref))
+
 #################
 # VISUALIZATION #
 #################
@@ -341,8 +482,10 @@ def plot_stream(filename, direction, live_bus, stops, links, stop_pos, stream_ti
 
     ax.plot(stop_pos, np.ones(len(stop_pos)), '.-')
     vehs, = ax.plot(bus_pos, np.ones(len(bus_pos)), '*', markersize=10)
+    ax.set_xlabel('Distance along the route', fontsize=14)
 
-    clock = 0
+    clock = 0 # minutes
+
     while clock <= stream_time:
         stream_next(data, live_bus, stops, links, stop_pos)
         bus_pos = [bus.pos for bus in live_bus.values()]
@@ -354,6 +497,47 @@ def plot_stream(filename, direction, live_bus, stops, links, stop_pos, stream_ti
 
         clock += 0.5
         time.sleep(rate) # set a global time equivalent parameter
+
+def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, sim_time=10, rate=0.1):
+    """
+    visualize a simulation streaming from an archive
+    sim_time: minutes to simulate
+    rate: simulate a second per "X" real-world second
+    """
+    data = load_archive(filename, direction)
+    bus_pos = [bus.pos for bus in active_bus.values()]
+
+    fig = plt.figure(figsize=(20,5))
+    ax = fig.add_subplot(111)
+
+    ax.plot(stop_pos, np.ones(len(stop_pos)), '.-')
+    vehs, = ax.plot(bus_pos, np.ones(len(bus_pos)), '*', markersize=10)
+    ax.set_xlabel('Distance along the route', fontsize=14)
+
+    clock = 0 # seconds
+
+    # while bus1.operate or bus2.operate or bus3.operate:
+    while clock <= sim_time * 60:
+        # stream next batch and update sim info per 30 seconds
+        if clock % 30 == 0:
+            print("Fetching new feeds...")
+            stream_next(data, live_bus, stops, links, stop_pos)
+            print("Updating simulator...")
+            sim_next(live_bus, active_bus, stops, links, stop_pos)
+        
+        # run each SimBus
+        if len(active_bus) > 0:
+            [bus.proceed() for bus in active_bus.values()]
+
+        bus_pos = [bus.pos for bus in active_bus.values()]
+        vehs.set_data(bus_pos, np.ones(len(bus_pos)))
+        
+        clear_output(wait=True)
+        display(fig)
+        print("Time elapsed: %i seconds"%(clock))
+
+        clock += 1
+        time.sleep(rate)
 
 #############
 # ANALYTICS #
