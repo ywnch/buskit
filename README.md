@@ -193,6 +193,11 @@ For more examples, see [example](example_busdata.ipynb).
 - Core archive streaming workflow are now functioning ([example](example_stream-archive.ipynb))
 - First version of stream inferring is functioning with more calibration required
 
+[180710]
+
+- Major improvement in simulation pipeline
+- Data processing issues: e.g., split trips while streaming
+
 ## References
 
 - Andres, M., & Nair, R. (2017). A predictive-control framework toaddress bus bunching. *Transportation Research Part B: Methodological*, *104*,123-148.

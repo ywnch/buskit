@@ -303,7 +303,8 @@ def plot_tsd(df, dir_ref=0, start_min=None, end_min=None, save=False, fname='TSD
         veh_df = df[vehref == v]
         
         ax.plot(veh_df['RecordedAtTime'], veh_df['VehDistAlongRoute'], marker='.')
-        ax.annotate('%s'%v.split("_")[1], (list(veh_df['RecordedAtTime'])[0],list(veh_df['VehDistAlongRoute'])[0]))
+        ax.annotate('%s'%v.split("_")[1],
+                    (list(veh_df['RecordedAtTime'])[0], list(veh_df['VehDistAlongRoute'])[0]))
         
     ax.grid()
     ax.set_xlabel("Time", fontsize=14)
