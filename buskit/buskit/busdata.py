@@ -208,6 +208,7 @@ def split_trips(df):
 def df_process(df, dir_ref):
     # subset df for given direction
     df = df[df['DirectionRef'] == dir_ref]
+    df = df[df['ProgressStatus'] != 'layover']
 
     # calculate vehicle distance along the route
     df.loc[:,'VehDistAlongRoute'] = df['CallDistanceAlongRoute'] - df['DistanceFromCall']

@@ -1,5 +1,5 @@
 # Author: Yuwen Chang, NYU CUSP
-# Last Updated: 2018/07/10
+# Last Updated: 2018/07/11
 ##############################
 # Code written for Bus Simulator
 # https://github.com/ywnch/BusSimulator
@@ -12,43 +12,17 @@ from IPython.display import display, clear_output, Image
 import os
 import sys
 import csv
-import json
-import ast
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import fiona
-import folium
-import geopandas as gpd
-import mplleaflet as mlf
-from shapely.geometry import Point
-
 import time
-import calendar
 import dateutil
 from datetime import timedelta
 
-import collections
-from collections import defaultdict
-
 import scipy.stats as ss
 from .busdata import *
-
-try:
-    import urllib2 as urllib
-    from urllib2 import HTTPError
-    from urllib2 import urlopen
-    from urllib import urlencode
-    from StringIO import StringIO as io
-
-except ImportError:
-    import urllib.request as urllib
-    from urllib.error import HTTPError
-    from urllib.request import urlopen, Request
-    from urllib.parse import urlencode
-    from io import BytesIO as io
 
 #############
 # STREAMING #
@@ -139,7 +113,7 @@ def stream_next(data, live_bus, stops, links, stop_pos):
 
     return live_bus
 
-def sim_next(live_bus, active_bus, stops, links, stop_pos):
+def sim_next(live_bus, active_bus, stops, links, stop_pos, control=False):
     """
     major function for stream update IN A SIMULATION
     data: streaming data, i.e., archive generator through load_archive() or live feed
@@ -154,7 +128,7 @@ def sim_next(live_bus, active_bus, stops, links, stop_pos):
         ref = bus.ref
         pos = bus.pos
         time = bus.time
-        new = SimBus(ref, pos, time, stops, links, stop_pos)
+        new = SimBus(ref, pos, time, stops, links, stop_pos, control)
 
         # add buses that did not show up in existing set
         if ref not in bus_ref:
@@ -183,10 +157,9 @@ def remove_inactive(batch, live_bus, sim=False):
             del live_bus[ref]
     return live_bus
 
-def update_bus(new, live_bus, stops, links, default_dwell=5):
+def update_bus(new, live_bus, stops, links):
     """
     major function for updating all the buffer information adopted by the simulator
-    default_dwell: default assumed dwelling time if the bus did not make a stop ping at stop
     """
     old = live_bus[new.ref]
     elapsed_t = new.time - old.time
@@ -204,14 +177,38 @@ def update_bus(new, live_bus, stops, links, default_dwell=5):
     # arrival time for each stop passed
     # minimal dwell time for each stop passed
     else:
-        # every stop that is passed by assumed to have 5 sec dwelling time
-        dwell_time = default_dwell
         # traveling speed in m/s
         try:
             speed = distance / elapsed_t.total_seconds()
         except ZeroDivisionError:
             speed = 0
             # print("Elapsed = 0:", new.ref, new.time, new.pos, elapsed_t, distance) # ERROR REPORT
+        
+        # interpolate dwelling time for all covered stops in 4 levels:
+        # LEVEL 1: if bus speed is high enough, assume passing stops w/o stopping
+        if speed >= 10:
+            dwell_time = 0
+
+        # LEVEL 2: bus driving fast, assume a minimal stop
+        elif speed >= 7:
+            dwell_time = 11
+        # LEVEL 3: the average baseline case
+        # avg mere dwelling time 16 + (avg stopping/leaving/door time 6)
+        elif speed >= 4:
+            dwell_time = 22
+        # LEVEL 4: very slow bus
+        # assume avg speed = 7 m/s, the redundant time is the assumed total dwelling time
+        ##### TEMPORARILY ATTEMPTED TO COVER "link-stop-link" ping case #####
+        else:
+            dwell_time = elapsed_t.total_seconds() - distance / 7
+
+        # recalculate speed
+        ##### TEMPORARY #####
+        try:
+            speed = distance / (elapsed_t.total_seconds() - dwell_time * 0.5)
+        except ZeroDivisionError:
+            speed = 0
+
         # the origin link
         lower = old.link
         # upper requires link + 1 in np.arange
@@ -223,14 +220,18 @@ def update_bus(new, live_bus, stops, links, default_dwell=5):
             upper = new.link + 1
 
         for l in list(np.arange(lower, upper)):
-            # time of arrival at stop
+            # infer time of arrival at stop
             if distance > 0:
                 new_arr = old.time + elapsed_t * (stops[l].pos - old.pos) / distance
             else:
                 new_arr = old.time
                 # print("Distance <= 0:", new.ref, new.time, new.pos, elapsed_t, distance) # ERROR REPORT
-            stops[l].update_dwell(new.ref, new_arr, dwell_time, at_stop=False)
+            ##### FOR stop-stop-link pings, the latter interval should NOT update lower/old stop
+            ##### FOR link-stop-link pings, the latter interval should update
+            ##### TEMPORARY: dont update old stop no matter what to avoid overwrite
             links[l].update_speed(speed)
+            if l != lower:
+                stops[l].update_dwell(new.ref, new_arr, dwell_time, at_stop=False)
 
     # overwrite live_bus
     live_bus[new.ref] = new
@@ -303,31 +304,51 @@ class Stop(object):
 
         self.prev_bus = None # latest bus_ref that pass the stop
         self.prev_arr = None # latest bus arrival time
-        self.dwell_window = [10, 10, 10] # in seconds
+        self.prev_dep = None
+        self.dwell_window = [22, 22, 22] # in seconds (k + dwell)
         self.dwell = np.mean(self.dwell_window)
+        self.q_window = [0.03, 0.03, 0.03] # dwell time parameter for simulator
+        self.q = np.mean(self.q_window)
 
         # log information
         self.log_bus_ref = []
         self.log_arr_t = []
+        self.log_dep_t = []
         self.log_wait_t = [] # headway
         self.log_dwell_t = []
+        self.log_q = []
+
+        # simulation
+        self.sim_prev_dep = None
         
     def record(self, new_bus, new_arr, dwell_time):
+
         try:
-            wait_t = new_arr - self.prev_arr
+            wait_t = new_arr - self.prev_dep
+            q = dwell_time / wait_t
         except TypeError:
-            wait_t = 0
+            wait_t = None
+            q = np.mean(self.q_window)
+
+        # calculate departure time
+        new_dep = new_arr + timedelta(seconds=dwell_time)
 
         self.dwell_window.pop(0)
         self.dwell_window.append(dwell_time)
 
+        self.q_window.pop(0)
+        self.q_window.append(q)
+
         self.log_bus_ref.append(new_bus)
         self.log_arr_t.append(new_arr)
+        self.log_dep_t.append(new_dep)
         self.log_wait_t.append(wait_t)
         self.log_dwell_t.append(dwell_time)
+        self.log_q.append(q)
 
-        self.prev_arr = new_arr
         self.prev_bus = new_bus
+        self.prev_arr = new_arr
+        self.prev_dep = new_dep
         
     def update_dwell(self, new_bus, new_arr, dwell_time, at_stop):
         # same bus making a stop for 2+ pings
@@ -335,19 +356,34 @@ class Stop(object):
             self.dwell_window[-1] += dwell_time
             self.log_dwell_t[-1] += dwell_time
 
+            # update q
+            try:
+                wait_t = new_arr - self.prev_dep
+                q = self.log_dwell_t[-1] / wait_t
+            except TypeError:
+                wait_t = None
+                q = np.mean(self.q_window)
+
+            ##### requires record ??? #####
         # two pings of the new bus: roll the window; OR,
         # bus passing through a stop
         else:
             self.record(new_bus, new_arr, dwell_time)
 
+        ##### may have to adjust depending on how stop-stop-link pings update stops #####
         self.dwell = np.mean(self.dwell_window)
+        self.q = np.mean(self.q_window)
+
+    # for simulation
+    def update_sim_dep(self, new_dep):
+        self.sim_prev_dep = new_dep
 
 class Link(object):
     
     def __init__(self, idx, origin):
         self.idx = idx # link index
         self.origin = origin # origin stop of this link
-        self.speed_window = [6, 6, 6]
+        self.speed_window = [7, 7, 7]
         self.speed = np.mean(self.speed_window)
 
         # log information
@@ -367,13 +403,12 @@ class Bus(object):
     # seat = 40
     stop_range = 100
     
-    def __init__(self, ref, run, pos, time, stop_pos, hold=False):
+    def __init__(self, ref, run, pos, time, stop_pos):
         self.ref = ref # vehicle reference
         self.run = run # trip runs made by this vehicle (to distinguish)
-        self.pos = pos # vehicle location (1-D)
+        self.pos = pos # vehicle location (1-D); ENSURE > 0???
         self.time = time # timestamp
         self.stop_pos = stop_pos ##### IS IT POSSIBLE TO MAKE THIS GLOBAL INSTEAD? #####
-        self.hold = hold
         self.link = sum(self.pos >= self.stop_pos) - 1 # link index the bus is at
         # at stop if within specified range of a stop
         # at_prev if pos is ahead of the closest stop (in range)
@@ -397,91 +432,148 @@ class SimBus(object):
     # capacity = 60
     # seat = 40
     
-    def __init__(self, ref, pos, time, stops, links, stop_pos):
+    def __init__(self, ref, pos, time, stops, links, stop_pos, control=False):
         self.ref = ref # vehicle reference
         self.pos = pos # vehicle location (1-D)
         self.time = time # timestamp
         self.stops = stops
         self.links = links
         self.stop_pos = stop_pos ##### IS IT POSSIBLE TO MAKE THIS GLOBAL INSTEAD? #####
+        self.control = control # whether to trigger holding strategies
         
         self.link = sum(self.pos >= self.stop_pos) - 1 # link index the bus is at
         self.next_stop = self.stop_pos[self.link + 1] # position of next stop
         self.speed = self.links[self.link].speed # speed at current link (m/s)
         self.dwell = 0
+        self.hold = 0
         self.headway = None
         # self.pax = 0 # vehicle load
         
         self.clock = 0 # dwell time counter
         self.operate = True
         self.atstop = False
-        # self.headway = None # headway with the vehicle ahead
+        self.leaving = False
         
         self.log_pos = [self.pos]
         self.log_time = [self.time]
+        self.log_status = ["initiating"]
         self.log_speed = [self.speed]
-        self.log_dwell = []
-        self.log_status = []
+        self.log_dwell = [None]
+        self.log_hold = [None]
+        self.log_stop = [None]
         # self.log_pax = [0]
 
     def terminal(self):
-        print("The bus has reached the terminal.")
+        # print("The bus has reached the terminal.")
         self.operate = False
         self.speed = 0
-        self.record(self.speed, "terminal")
+        self.record("terminal")
         # self.pax = 0
         
     def reach_stop(self):
-        print("Bus %s arrives a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
+        # print("Bus %s arrives a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
         self.atstop = True
+
+        ##### currently disabled utilities #####
         # self.pax_to_board = pax_at_stop[self.link + 1] # check how many pax at stop
         # self.board_t = self.pax * avg_board_t
         # self.alight_t = 0 * avg_alight_t  #### TO DEVELOP
         # self.dwell = avg_door_t + self.alight_t + self.board_t # supposed to dwell for this long
-
         # self.speed = 0
-        self.dwell = self.stops[self.link + 1].dwell
-        self.prev_arr = self.stops[self.link + 1].prev_arr
+
+        # calculate headway
         try:
-            self.headway = self.time - (self.prev_arr + self.dwell) # a_{i} - d_{i-1}
+            # a_{i} - d_{i-1}
+            self.headway = (self.time - self.stops[self.link + 1].sim_prev_dep).total_seconds()
         except TypeError:
+            # if no sim_prev_dep yet
             self.headway = None
 
-        self.record(0, "reaching")
+        # calculate dwelling time
+        ##### Q VALVE HERE: CURRENTLY SHUT OFF DUE TO BAD PERFORMANCE #####
+        # self.dwell = self.calc_dwell(q=self.stops[self.link + 1].q)
+        self.dwell = self.calc_dwell()
+
+        # calculate holding time
+        if self.control:
+            self.hold = self.calc_hold()
+        else:
+            # don't hold no matter what
+            self.hold = 0
+
+        self.record("reaching", 0, self.dwell, self.hold, self.stops[self.link + 1].idx)
         self.clock += 1
 
     def dwell_stop(self):
-        print("Bus %s is still making a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
-        self.record(0, "dwelling")
+        # print("Bus %s is still making a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
+        self.record("dwelling")
         self.clock += 1
     
+    def hold_stop(self):
+        # print("Bus %s is being held at stop %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
+        self.record("holding")
+        self.clock += 1
+
     def leave_stop(self):
-        print("Bus %s departs a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
+        # print("Bus %s departs a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
         self.atstop = False # move on!
+        self.leaving = True # for update_sim_stops
+        ## self.pos += self.speed + 0.1 # make sure to push the bus out of the stop (loop)!
+        self.record("leaving")
         # pax_at_stop[self.link + 1] = 0 # clear all pax at stop
-        self.log_dwell.append(self.dwell)
         
-        # reset vars
-        self.dwell = 0
+        # reset and update vars
         self.clock = 0
+        ## self.link = sum(self.pos >= self.stop_pos) - 1
         self.link += 1
         self.next_stop = self.stop_pos[self.link + 1] # new next stop
         self.speed = self.links[self.link].speed # new link speed
+        self.dwell = 0 # reset dwelling time
+        self.hold = 0 # reset holding time
         # self.pax = 0 # update pax onboard
-        
-        self.record(self.speed, "leaving")
 
-    def record(self, speed, status):
+    def record(self, status, speed=0, dwell=None, hold=None, stop=None):
         self.log_pos.append(self.pos)
         self.log_time.append(self.time)
-        self.log_speed.append(speed)
         self.log_status.append(status)
+        self.log_speed.append(speed)
+        self.log_dwell.append(dwell)
+        self.log_hold.append(hold)
+        self.log_stop.append(stop) # record stop index
+        
         self.time += timedelta(seconds=1)
         
-    def update_info(self, stops, links):
+    def calc_dwell(self, k=5, q=0.015):
+        """
+        This is the algorithm for calculating a dwelling time.
+        """
+        if self.headway != None:
+            dwell = k + q * self.headway
+        # if no sim_prev_dep yet
+        else:
+            ##### TEMPORARY #####
+            dwell = self.stops[self.link + 1].dwell
+
+        return dwell
+
+    def calc_hold(self):
+        """
+        This is the algorithm for determining hold time.
+        """
+        if self.headway != None and self.headway < 600:
+            # hold = 600 - self.headway # Policy 1
+            hold = 90
+
+        else:
+            hold = 0
+
+        return hold
+
+    def update_info(self, stops, links=None):
         ##### use global for other functions instead? #####
         self.stops = stops
-        self.links = links
+        if links != None:
+            self.links = links
         
     def proceed(self):
         if self.operate:
@@ -493,24 +585,49 @@ class SimBus(object):
             ### this judgement restricts from changing speed to 0 at stop, consider modification
             ### because if speed = 0, this condition wont be fulfilled
             elif self.pos + self.speed >= self.next_stop:
-                # first reach
+                # 2.1: first reach
                 if not self.atstop:
                     self.reach_stop()
-                # still dwelling
-                else:
+                # 2.2: still dwelling
+                elif self.clock < self.dwell:
                     self.dwell_stop()
-                # check if dwelling is complete
-                if self.clock >= self.dwell:
+                # 2.3: still holding
+                elif self.clock < self.dwell + self.hold:
+                    self.hold_stop()
+                # 2.4: dwell and hold complete, leave
+                elif self.clock >= self.dwell + self.hold:
                     self.leave_stop()
+                # safety check
+                else:
+                    ##### Include in error log #####
+                    print("Unexpected condition during proceed. (Bus: %s at Pos: %s on %s)"%(
+                          self.ref, self.pos, self.time))
             
             # SCENARIO 3: reach nothing, keep moving
             else:
-                print("Current position of bus %s: %i"%(self.ref, self.pos))
+                # print("Current position of bus %s: %i"%(self.ref, self.pos))
                 self.pos += self.speed
-                self.record(self.speed, "traveling")
+                self.record("traveling", self.speed)
         else:
-            print("Bus %s is not operating."%(self.ref))
+            # print("Bus %s is not operating."%(self.ref))
             pass
+
+    def report(self, filename=None):
+        """
+        create a DataFrame report of the vehicle
+        filename: when specified (str), export as csv
+        """
+        df = pd.DataFrame({'vehref': self.ref,
+                           'position': self.log_pos,
+                           'time': self.log_time,
+                           'speed': self.log_speed,
+                           'dwell': self.log_dwell,
+                           'hold': self.hold,
+                           'status': self.log_status})
+        if filename != None:
+            df.to_csv(filename)
+
+        return df
 
 #################
 # VISUALIZATION #
@@ -546,11 +663,12 @@ def plot_stream(filename, direction, live_bus, stops, links, stop_pos, stream_ti
         clock += 0.5
         time.sleep(rate) # set a global time equivalent parameter
 
-def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, sim_time=10, rate=0.1):
+def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, control=False, sim_time=10, rate=0.1):
     """
     visualize a simulation streaming from an archive
     sim_time: minutes to simulate
     rate: simulate a second per "X" real-world second
+    please reset route before each sim ##### to incorporate auto-check
     """
     data = load_archive(filename, direction)
     bus_pos = [bus.pos for bus in active_bus.values()]
@@ -571,11 +689,12 @@ def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
             print("Fetching new feeds...")
             stream_next(data, live_bus, stops, links, stop_pos)
             print("Updating simulator...")
-            sim_next(live_bus, active_bus, stops, links, stop_pos)
+            sim_next(live_bus, active_bus, stops, links, stop_pos, control)
         
         # run each SimBus
         if len(active_bus) > 0:
             [bus.proceed() for bus in active_bus.values()]
+            update_sim_stops(active_bus, stops)
 
         bus_pos = [bus.pos for bus in active_bus.values()]
         vehs.set_data(bus_pos, np.ones(len(bus_pos)))
@@ -602,10 +721,11 @@ def infer(filename, direction, live_bus, stops, links, stop_pos, runtime=60):
     for i in np.arange(runtime * 2):
         stream_next(data, live_bus, stops, links, stop_pos)
 
-def simulate(filename, direction, live_bus, active_bus, stops, links, stop_pos, sim_time=10):
+def simulate(filename, direction, live_bus, active_bus, stops, links, stop_pos, control=False, sim_time=10):
     """
     simply simulate to get data (i.e., plot_sim w/o plot)
     sim_time: minutes to simulate
+    please reset route before each sim ##### to incorporate auto-check
     """
     data = load_archive(filename, direction)
     
@@ -615,13 +735,28 @@ def simulate(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
         # stream next batch and update sim info per 30 seconds
         if clock % 30 == 0:
             stream_next(data, live_bus, stops, links, stop_pos)
-            sim_next(live_bus, active_bus, stops, links, stop_pos)
+            sim_next(live_bus, active_bus, stops, links, stop_pos, control)
         
         # run each SimBus
         if len(active_bus) > 0:
             [bus.proceed() for bus in active_bus.values()]
+            update_sim_stops(active_bus, stops)
 
         clock += 1
+
+def update_sim_stops(active_bus, stops):
+    """
+    Update all stops with prev_dep info of SimBus (active_bus)
+    """
+    # find all departing/leaving buses
+    dep_bus = [bus for bus in active_bus.values() if bus.leaving]
+    # update each stop that has a bus departure with latest dep time
+    for bus in dep_bus:
+        stops[bus.link].update_sim_dep(bus.time)
+        bus.leaving = False # turn off indicator after update is done
+    # update stops to all active buses
+    for bus in active_bus.values():
+        bus.update_info(stops)
 
 #############
 # ANALYTICS #
