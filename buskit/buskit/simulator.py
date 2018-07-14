@@ -102,7 +102,7 @@ def stream_next(data, live_bus, stops, links, stop_pos):
         # then check if this is a new run by the same vehicle
         # if so (position drops 2+ KM), split reference
         if live_bus[nref].pos - pos > 2000:
-            # update ref and run, and treat as a new bus
+            # update ref & run, and treat as a new bus
             nref = '%s_%s'%(ref, runs+1)
             new.ref = nref
             new.run = runs+1
@@ -128,11 +128,10 @@ def sim_next(live_bus, active_bus, stops, links, stop_pos, control=False):
         ref = bus.ref
         pos = bus.pos
         time = bus.time
-        new = SimBus(ref, pos, time, stops, links, stop_pos, control)
 
         # add buses that did not show up in existing set
         if ref not in bus_ref:
-            active_bus[ref] = new
+            active_bus[ref] = SimBus(ref, pos, time, stops, links, stop_pos, control)
         # update bus and link information between two pings
         else:
             active_bus[ref].update_info(stops, links)
@@ -158,6 +157,7 @@ def remove_inactive(batch, live_bus, sim=False):
     return live_bus
 
 def update_bus(new, live_bus, stops, links):
+    ##### CHANGE NAME TO update_stops/links TO AVOID CONFUSION? #####
     """
     major function for updating all the buffer information adopted by the simulator
     """
@@ -188,7 +188,6 @@ def update_bus(new, live_bus, stops, links):
         # LEVEL 1: if bus speed is high enough, assume passing stops w/o stopping
         if speed >= 10:
             dwell_time = 0
-
         # LEVEL 2: bus driving fast, assume a minimal stop
         elif speed >= 7:
             dwell_time = 11

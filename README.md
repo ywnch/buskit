@@ -17,6 +17,12 @@ Project affiliated with [BUILT@NYU](https://github.com/BUILTNYU) led by Prof. Jo
 
 `pip install buskit`
 
+current version: [1.0.0.dev6](https://pypi.org/project/buskit/)
+
+## Framework
+
+![buskit simulator framework](figtab/flow_draft.png)
+
 ## Motivation
 
 - How can we easily analyze bus trajectories and activities? How can we mitigate bus bunching? How do we know the effects of operational strategies such as holding or skipping on the services and passengers?
@@ -24,8 +30,6 @@ Project affiliated with [BUILT@NYU](https://github.com/BUILTNYU) led by Prof. Jo
 - The dashboard and simulator can make use of real-time, historical as well as artificial data smoothly and can be easily applied to any city as long as they share the same data standards (GTFS, SIRI).
 - The monitoring dashboard allows riders to spot unstable services in advance and operators to easily identify bunching scenarios. The simulation tool allows involved parties to try different bus control strategies to mitigate unreliable headways.
 - To make the toolkit more accessible, a well-designed user interface is to be developed. The prototype simulator is still under development and will benefit from more specification and controls as well.
-
-![project structure](figtab/str.png)<!-- .element height="50%" width="50%" -->
 
 ## Data Streaming Functions
 
