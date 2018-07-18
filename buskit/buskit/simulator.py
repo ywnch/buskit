@@ -1,5 +1,5 @@
 # Author: Yuwen Chang, NYU CUSP
-# Last Updated: 2018/07/11
+# Last Updated: 2018/07/17
 ##############################
 # Code written for Bus Simulator
 # https://github.com/ywnch/BusSimulator
@@ -21,6 +21,7 @@ import time
 import dateutil
 from datetime import timedelta
 
+import random
 import scipy.stats as ss
 from .busdata import *
 
@@ -78,7 +79,10 @@ def stream_next(data, live_bus, stops, links, stop_pos):
         time = dateutil.parser.parse(bus['RecordedAtTime'])
 
         # create buffer Bus before updating
-        new = Bus(ref, 1, pos, time, stop_pos)
+        try:
+            new = Bus(ref, 1, pos, time, stop_pos)
+        except IndexError: ###### if next stop is terminal?? #####
+            continue
 
         # check for run number
         runs = len([br for br in bus_ref if ref in br])
@@ -156,6 +160,43 @@ def remove_inactive(batch, live_bus, sim=False):
             del live_bus[ref]
     return live_bus
 
+def infer_dwell(distance, elapsed_t, n_links):
+    # traveling speed in m/s
+    try:
+        speed = distance / elapsed_t.total_seconds()
+    except ZeroDivisionError:
+        speed = 0
+        # print("Elapsed = 0:", new.ref, new.time, new.pos, elapsed_t, distance) # ERROR REPORT
+    
+    # interpolate dwelling time for all covered stops in 4 levels:
+    # LEVEL 1: if bus speed is high enough, assume passing stops w/o stopping
+    if speed >= 11:
+        dwell_time = 0
+    # LEVEL 2: bus driving fast, assume a minimal stop
+    elif speed >= 8:
+        dwell_time = 11
+    # LEVEL 3: the average baseline case
+    # avg mere dwelling time 16 + (avg stopping/leaving/door time 6)
+    elif speed >= 5:
+        dwell_time = 22
+    # LEVEL 4: very slow bus
+    # assume avg speed = 7 m/s, the redundant time is the assumed total dwelling time
+    ##### TEMPORARILY ATTEMPTED TO COVER "link-stop-link" ping case #####
+    else:
+        dwell_time = elapsed_t.total_seconds() - distance / 7
+
+    # recalculate speed
+    ##### TEMPORARY #####
+    try:
+        speed = distance / (elapsed_t.total_seconds() - dwell_time * 0.5)
+    except ZeroDivisionError:
+        speed = 0
+
+    # the average dwell_time for each stop covered
+    dwell_time /= max(n_links - 1, 1) ##### neglecting the case when "lower" starts at a stop
+
+    return dwell_time, speed
+
 def update_bus(new, live_bus, stops, links):
     ##### CHANGE NAME TO update_stops/links TO AVOID CONFUSION? #####
     """
@@ -170,44 +211,29 @@ def update_bus(new, live_bus, stops, links):
     if (new.at_stop and old.at_stop) and (new.at_stop_idx == old.at_stop_idx):
         new_arr = old.time
         dwell_time = elapsed_t.total_seconds()
-        stops[new.at_stop_idx].update_dwell(new.ref, new_arr, dwell_time, at_stop=True)
+        stops[old.at_stop_idx].update_dwell(new.ref, new_arr, dwell_time, at_stop=True)
+        stops[old.at_stop_idx].prev_stopped_bus = new.ref # update bus ref of latest stop-stop scenario at stop
 
-    # SCENARIO 2: other situations, update:
+    # SCENARIO 2: stop-link pings (both S-S-L and L-S-L)
+    # consider bus is still on the same link, meaning that the bus has not left too far
+    # also meaning that part of this interval is likely to be dwelling
+    elif ((not new.at_stop) and old.at_stop) and (new.link == old.link):
+        new_arr = old.time # arrival time at stop
+        dwell_time, speed = infer_dwell(distance, elapsed_t, 2)
+        # SCENARIO 2-1 S-S-L: fall back to scenario 1
+        if new.ref == stops[old.at_stop_idx].prev_stopped_bus:
+            stops[new.link].update_dwell(new.ref, new_arr, dwell_time, at_stop=True)
+        # SCENARIO 2-2 L-S-L: follow scenario 3
+        ##### DOES NOT HANDLE SITUATION WHEN DWELL HAPPENS IN EARLIER PING PAIR (L-S)
+        else:
+            links[new.link].update_speed(speed)
+            stops[new.link].update_dwell(new.ref, new_arr, dwell_time, at_stop=False)
+
+    # SCENARIO 3: other situations, update:
     # speed for every link traveled
     # arrival time for each stop passed
     # minimal dwell time for each stop passed
     else:
-        # traveling speed in m/s
-        try:
-            speed = distance / elapsed_t.total_seconds()
-        except ZeroDivisionError:
-            speed = 0
-            # print("Elapsed = 0:", new.ref, new.time, new.pos, elapsed_t, distance) # ERROR REPORT
-        
-        # interpolate dwelling time for all covered stops in 4 levels:
-        # LEVEL 1: if bus speed is high enough, assume passing stops w/o stopping
-        if speed >= 10:
-            dwell_time = 0
-        # LEVEL 2: bus driving fast, assume a minimal stop
-        elif speed >= 7:
-            dwell_time = 11
-        # LEVEL 3: the average baseline case
-        # avg mere dwelling time 16 + (avg stopping/leaving/door time 6)
-        elif speed >= 4:
-            dwell_time = 22
-        # LEVEL 4: very slow bus
-        # assume avg speed = 7 m/s, the redundant time is the assumed total dwelling time
-        ##### TEMPORARILY ATTEMPTED TO COVER "link-stop-link" ping case #####
-        else:
-            dwell_time = elapsed_t.total_seconds() - distance / 7
-
-        # recalculate speed
-        ##### TEMPORARY #####
-        try:
-            speed = distance / (elapsed_t.total_seconds() - dwell_time * 0.5)
-        except ZeroDivisionError:
-            speed = 0
-
         # the origin link
         lower = old.link
         # upper requires link + 1 in np.arange
@@ -217,6 +243,8 @@ def update_bus(new, live_bus, stops, links):
             upper = new.link
         else:
             upper = new.link + 1
+
+        dwell_time, speed = infer_dwell(distance, elapsed_t, upper-lower)
 
         for l in list(np.arange(lower, upper)):
             # infer time of arrival at stop
@@ -302,11 +330,12 @@ class Stop(object):
         self.name = name # stop name
 
         self.prev_bus = None # latest bus_ref that pass the stop
+        self.prev_stopped_bus = None # the latest bus ref that made a stop-stop ping scenario
         self.prev_arr = None # latest bus arrival time
         self.prev_dep = None
         self.dwell_window = [22, 22, 22] # in seconds (k + dwell)
         self.dwell = np.mean(self.dwell_window)
-        self.q_window = [0.03, 0.03, 0.03] # dwell time parameter for simulator
+        self.q_window = [0.05, 0.05, 0.05, 0.05] # dwell time parameter for simulator
         self.q = np.mean(self.q_window)
 
         # log information
@@ -323,8 +352,13 @@ class Stop(object):
     def record(self, new_bus, new_arr, dwell_time):
 
         try:
-            wait_t = new_arr - self.prev_dep
-            q = dwell_time / wait_t
+            wait_t = (new_arr - self.prev_dep).total_seconds()
+            if wait_t > 0:
+                q = min(dwell_time / wait_t, 0.2) # keep q small
+            else:
+                q = np.mean(self.q_window)
+
+        # if prev_dep = None (no prev call yet), just succeed previous q
         except TypeError:
             wait_t = None
             q = np.mean(self.q_window)
@@ -356,9 +390,15 @@ class Stop(object):
             self.log_dwell_t[-1] += dwell_time
 
             # update q
+            ##### MERGE SIMILAR CODE FROM ABOVE #####
             try:
-                wait_t = new_arr - self.prev_dep
-                q = self.log_dwell_t[-1] / wait_t
+                wait_t = (new_arr - self.prev_dep).total_seconds()
+                if wait_t > 0:
+                    q = min(self.log_dwell_t[-1] / wait_t, 0.2) # keep q small
+                else:
+                    q = np.mean(self.q_window)
+
+            ### SUPPOSEDLY SHOULDNT HAPPEN ###
             except TypeError:
                 wait_t = None
                 q = np.mean(self.q_window)
@@ -413,7 +453,8 @@ class Bus(object):
         # at_prev if pos is ahead of the closest stop (in range)
         self.at_prev = self.pos - self.stop_pos[self.link] <= self.stop_range
         # at_next if pos is before the closest stop (in range)
-        self.at_next = self.pos - self.stop_pos[self.link+1] >= -self.stop_range
+        self.at_next = self.pos - self.stop_pos[self.link + 1] >= -self.stop_range
+            
         # at stop if either at_prev or at_next
         self.at_stop = self.at_prev or self.at_next
         ##### CONSIDER SIMPLIFYING THE ABOVE AS A SINGLE "NONE" or "INDEX" ATTRIBUTE #####
@@ -440,7 +481,8 @@ class SimBus(object):
         self.stop_pos = stop_pos ##### IS IT POSSIBLE TO MAKE THIS GLOBAL INSTEAD? #####
         self.control = control # whether to trigger holding strategies
         
-        self.link = sum(self.pos >= self.stop_pos) - 1 # link index the bus is at
+        ##### TEMPORARY MEASURE TO RESOLVE KEYERROR (-1)
+        self.link = max(sum(self.pos >= self.stop_pos) - 1, 0) # link index the bus is at
         self.next_stop = self.stop_pos[self.link + 1] # position of next stop
         self.speed = self.links[self.link].speed # speed at current link (m/s)
         self.dwell = 0
@@ -490,8 +532,8 @@ class SimBus(object):
 
         # calculate dwelling time
         ##### Q VALVE HERE: CURRENTLY SHUT OFF DUE TO BAD PERFORMANCE #####
-        # self.dwell = self.calc_dwell(q=self.stops[self.link + 1].q)
-        self.dwell = self.calc_dwell()
+        self.dwell = self.calc_dwell(q=self.stops[self.link + 1].q)
+        # self.dwell = self.calc_dwell()
 
         # calculate holding time
         if self.control:
@@ -542,16 +584,25 @@ class SimBus(object):
         
         self.time += timedelta(seconds=1)
         
-    def calc_dwell(self, k=5, q=0.015):
+    def calc_dwell(self, k=5, q=0.03):
         """
         This is the algorithm for calculating a dwelling time.
         """
+        # determine base dwell_time depending on whether headway (sim_prev_dep) exists
         if self.headway != None:
-            dwell = k + q * self.headway
-        # if no sim_prev_dep yet
+            dwell = k + 0.2 * q * self.headway ##### adding 0.5 for temporary adjustment #####
         else:
-            ##### TEMPORARY #####
-            dwell = self.stops[self.link + 1].dwell
+            dwell = self.stops[self.link + 1].dwell ##### TEMPORARY #####
+
+        # randomize based on bunching or not
+        # to escape simulation convergence of multiple buses
+        if self.headway != None and self.headway < 90:
+            ##### ADJUST (REDUCE) DWELL_TIME WHEN HW=0 TO REFLECT BUNCHING #####
+            ##### THIS METHOD MAY LEAD TO A TANGLING SPEED UP CYLE !!! #####
+            # pass over prevbus, each share half load
+            dwell = random.choice([0, dwell/3])
+        else:
+            dwell = max(8 * np.random.randn() + dwell, 0)
 
         return dwell
 
