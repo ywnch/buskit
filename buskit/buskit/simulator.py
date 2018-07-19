@@ -342,12 +342,18 @@ class Stop(object):
         self.log_bus_ref = []
         self.log_arr_t = []
         self.log_dep_t = []
-        self.log_wait_t = [] # headway
+        self.log_wait_t = [] ##### max wait time -> rename it "headway" #####
         self.log_dwell_t = []
         self.log_q = []
 
         # simulation
         self.sim_prev_dep = None
+        self.nbus_at_stop = 0 # number of buses at stop
+
+        # log information for simulation
+        self.sim_arr_t = []
+        self.sim_dep_t = []
+        self.sim_headway = []
         
     def record(self, new_bus, new_arr, dwell_time):
 
@@ -414,8 +420,22 @@ class Stop(object):
         self.q = np.mean(self.q_window)
 
     # for simulation
+    ### requires simplification ###
+    def update_sim_arr(self, new_arr):
+        self.sim_prev_arr = new_arr
+        self.sim_arr_t.append(new_arr)
+
+        # if no bus at stop: update headway (max wait time)
+        if self.nbus_at_stop == 0 and self.sim_prev_dep != None:
+            headway = (new_arr - self.sim_prev_dep).total_seconds()
+            self.sim_headway.append(headway)
+
+        self.nbus_at_stop += 1
+
     def update_sim_dep(self, new_dep):
         self.sim_prev_dep = new_dep
+        self.sim_dep_t.append(new_dep)
+        self.nbus_at_stop -= 1
 
 class Link(object):
     
@@ -487,12 +507,13 @@ class SimBus(object):
         self.speed = self.links[self.link].speed # speed at current link (m/s)
         self.dwell = 0
         self.hold = 0
-        self.headway = None
+        self.headway = None # seconds
         # self.pax = 0 # vehicle load
         
         self.clock = 0 # dwell time counter
         self.operate = True
         self.atstop = False
+        self.reaching = False
         self.leaving = False
         
         self.log_pos = [self.pos]
@@ -514,6 +535,7 @@ class SimBus(object):
     def reach_stop(self):
         # print("Bus %s arrives a stop at %s (position %i)"%(self.ref, self.stops[self.link + 1].name, self.next_stop))
         self.atstop = True
+        self.reaching = True # for update_sim_stops
 
         ##### currently disabled utilities #####
         # self.pax_to_board = pax_at_stop[self.link + 1] # check how many pax at stop
@@ -610,7 +632,7 @@ class SimBus(object):
         """
         This is the algorithm for determining hold time.
         """
-        if self.headway != None and self.headway < 600:
+        if self.headway != None and self.headway < 600: # seconds
             # hold = 600 - self.headway # Policy 1
             hold = 90
 
@@ -731,6 +753,7 @@ def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
     ax.set_xlabel('Distance along the route', fontsize=14)
 
     clock = 0 # seconds
+    bunch = 0 # vehicle-interval-second
 
     # while bus1.operate or bus2.operate or bus3.operate:
     while clock <= sim_time * 60:
@@ -745,6 +768,7 @@ def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
         if len(active_bus) > 0:
             [bus.proceed() for bus in active_bus.values()]
             update_sim_stops(active_bus, stops)
+            bunch += count_bunch(active_bus)
 
         bus_pos = [bus.pos for bus in active_bus.values()]
         vehs.set_data(bus_pos, np.ones(len(bus_pos)))
@@ -755,6 +779,8 @@ def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
 
         clock += 1
         time.sleep(rate)
+
+    return bunch
 
 ##############
 # SIMULATION #
@@ -779,7 +805,8 @@ def simulate(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
     """
     data = load_archive(filename, direction)
     
-    clock = 0
+    clock = 0 # seconds
+    bunch = 0 # vehicle-interval-second
 
     while clock <= sim_time * 60:
         # stream next batch and update sim info per 30 seconds
@@ -791,22 +818,49 @@ def simulate(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
         if len(active_bus) > 0:
             [bus.proceed() for bus in active_bus.values()]
             update_sim_stops(active_bus, stops)
+            bunch += count_bunch(active_bus)
 
         clock += 1
 
+    report = {'bunch':bunch}
+    return report ##### adjust how to record this when a simulator grand class is built #####
+
 def update_sim_stops(active_bus, stops):
     """
-    Update all stops with prev_dep info of SimBus (active_bus)
+    Update all stops with simulation info of SimBus (active_bus)
     """
-    # find all departing/leaving buses
+    # find all arriving/departing buses
+    arr_bus = [bus for bus in active_bus.values() if bus.reaching]
     dep_bus = [bus for bus in active_bus.values() if bus.leaving]
+
+    # update each stop that has a bus arrival with latest arr time
+    for bus in arr_bus:
+        stops[bus.link + 1].update_sim_arr(bus.time) # NOTICE: +1 b/c link number not updated to the next yet
+        bus.reaching = False # turn off indicator after update is done
+    
     # update each stop that has a bus departure with latest dep time
     for bus in dep_bus:
         stops[bus.link].update_sim_dep(bus.time)
         bus.leaving = False # turn off indicator after update is done
+    
     # update stops to all active buses
     for bus in active_bus.values():
         bus.update_info(stops)
+
+##############
+# EVALUATION #
+##############
+
+def count_bunch(bus_dict, threshold=300):
+    """
+    determines spacing-based bunching for each sim run (second)
+    each unit is a (vehicle) interval-second of bunching
+    threshold for bunching: default 300 meter
+    """
+    bus_pos = [bus.pos for bus in bus_dict.values() if bus.operate]
+    result = sum(np.abs(np.diff(bus_pos)) < threshold)
+
+    return result
 
 #############
 # ANALYTICS #
