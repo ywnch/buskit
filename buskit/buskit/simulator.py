@@ -91,16 +91,17 @@ def stream_next(data, live_bus, stops, links, stop_pos):
         # add buses that did not show up in existing set
         # if ref not in bus_ref:
         if runs == 0:
-            live_bus[ref] = new
+            nref = '%s_%s'%(ref, 1)
+            new.ref = nref
+            live_bus[nref] = new
             continue
         # else vehicle exist, update reference for following query and update
         # if more than one run, add suffix
-        elif runs > 1:
+        elif runs >= 1:
             nref = '%s_%s'%(ref, runs)
             new.ref = nref
-            new.run = runs
         else:
-            nref = ref
+            print("run count error")
 
         # now "new" should have the latest ref
         # then check if this is a new run by the same vehicle
@@ -109,7 +110,6 @@ def stream_next(data, live_bus, stops, links, stop_pos):
             # update ref & run, and treat as a new bus
             nref = '%s_%s'%(ref, runs+1)
             new.ref = nref
-            new.run = runs+1
             live_bus[nref] = new
         # normal progress, update bus and link information between two pings
         else:
@@ -117,7 +117,7 @@ def stream_next(data, live_bus, stops, links, stop_pos):
 
     return live_bus
 
-def sim_next(live_bus, active_bus, stops, links, stop_pos, control=False):
+def sim_next(live_bus, active_bus, stops, links, stop_pos, control=0):
     """
     major function for stream update IN A SIMULATION
     data: streaming data, i.e., archive generator through load_archive() or live feed
@@ -342,7 +342,7 @@ class Stop(object):
         self.log_bus_ref = []
         self.log_arr_t = []
         self.log_dep_t = []
-        self.log_wait_t = [] ##### max wait time -> rename it "headway" #####
+        self.log_headway = []
         self.log_dwell_t = []
         self.log_q = []
 
@@ -358,15 +358,15 @@ class Stop(object):
     def record(self, new_bus, new_arr, dwell_time):
 
         try:
-            wait_t = (new_arr - self.prev_dep).total_seconds()
-            if wait_t > 0:
-                q = min(dwell_time / wait_t, 0.2) # keep q small
+            headway = (new_arr - self.prev_dep).total_seconds()
+            if headway > 0:
+                q = min(dwell_time / headway, 0.2) # keep q small
             else:
                 q = np.mean(self.q_window)
 
         # if prev_dep = None (no prev call yet), just succeed previous q
         except TypeError:
-            wait_t = None
+            headway = None
             q = np.mean(self.q_window)
 
         # calculate departure time
@@ -381,7 +381,7 @@ class Stop(object):
         self.log_bus_ref.append(new_bus)
         self.log_arr_t.append(new_arr)
         self.log_dep_t.append(new_dep)
-        self.log_wait_t.append(wait_t)
+        self.log_headway.append(headway)
         self.log_dwell_t.append(dwell_time)
         self.log_q.append(q)
 
@@ -398,15 +398,15 @@ class Stop(object):
             # update q
             ##### MERGE SIMILAR CODE FROM ABOVE #####
             try:
-                wait_t = (new_arr - self.prev_dep).total_seconds()
-                if wait_t > 0:
-                    q = min(self.log_dwell_t[-1] / wait_t, 0.2) # keep q small
+                headway = (new_arr - self.prev_dep).total_seconds()
+                if headway > 0:
+                    q = min(self.log_dwell_t[-1] / headway, 0.2) # keep q small
                 else:
                     q = np.mean(self.q_window)
 
             ### SUPPOSEDLY SHOULDNT HAPPEN ###
             except TypeError:
-                wait_t = None
+                headway = None
                 q = np.mean(self.q_window)
 
             ##### requires record ??? #####
@@ -464,7 +464,7 @@ class Bus(object):
     
     def __init__(self, ref, run, pos, time, stop_pos):
         self.ref = ref # vehicle reference
-        self.run = run # trip runs made by this vehicle (to distinguish)
+        # self.run = run # trip runs made by this vehicle (to distinguish)
         self.pos = pos # vehicle location (1-D); ENSURE > 0???
         self.time = time # timestamp
         self.stop_pos = stop_pos ##### IS IT POSSIBLE TO MAKE THIS GLOBAL INSTEAD? #####
@@ -492,7 +492,7 @@ class SimBus(object):
     # capacity = 60
     # seat = 40
     
-    def __init__(self, ref, pos, time, stops, links, stop_pos, control=False):
+    def __init__(self, ref, pos, time, stops, links, stop_pos, control=0):
         self.ref = ref # vehicle reference
         self.pos = pos # vehicle location (1-D)
         self.time = time # timestamp
@@ -555,14 +555,10 @@ class SimBus(object):
         # calculate dwelling time
         ##### Q VALVE HERE: CURRENTLY SHUT OFF DUE TO BAD PERFORMANCE #####
         self.dwell = self.calc_dwell(q=self.stops[self.link + 1].q)
-        # self.dwell = self.calc_dwell()
+        # self.dwell = self.calc_dwell() # use default q
 
         # calculate holding time
-        if self.control:
-            self.hold = self.calc_hold()
-        else:
-            # don't hold no matter what
-            self.hold = 0
+        self.hold = self.calc_hold()
 
         self.record("reaching", 0, self.dwell, self.hold, self.stops[self.link + 1].idx)
         self.clock += 1
@@ -596,6 +592,7 @@ class SimBus(object):
         # self.pax = 0 # update pax onboard
 
     def record(self, status, speed=0, dwell=None, hold=None, stop=None):
+        self.time += timedelta(seconds=1)
         self.log_pos.append(self.pos)
         self.log_time.append(self.time)
         self.log_status.append(status)
@@ -603,8 +600,6 @@ class SimBus(object):
         self.log_dwell.append(dwell)
         self.log_hold.append(hold)
         self.log_stop.append(stop) # record stop index
-        
-        self.time += timedelta(seconds=1)
         
     def calc_dwell(self, k=5, q=0.03):
         """
@@ -632,9 +627,19 @@ class SimBus(object):
         """
         This is the algorithm for determining hold time.
         """
+        # check if bunching in place
         if self.headway != None and self.headway < 600: # seconds
-            # hold = 600 - self.headway # Policy 1
-            hold = 90
+            # method 0: no control
+            if self.control == 0:
+                hold = 0
+            # method 1: fixed holding
+            elif self.control == 1:
+                hold = 60
+            # method 2: naive headway
+            elif self.control == 2:
+                hold = 600 - self.headway
+            else:
+                hold = 0
 
         else:
             hold = 0
@@ -692,10 +697,11 @@ class SimBus(object):
         df = pd.DataFrame({'vehref': self.ref,
                            'position': self.log_pos,
                            'time': self.log_time,
+                           'status': self.log_status,
                            'speed': self.log_speed,
                            'dwell': self.log_dwell,
-                           'hold': self.hold,
-                           'status': self.log_status})
+                           'hold': self.log_hold,
+                           'stop': self.log_stop})
         if filename != None:
             df.to_csv(filename)
 
@@ -735,7 +741,8 @@ def plot_stream(filename, direction, live_bus, stops, links, stop_pos, stream_ti
         clock += 0.5
         time.sleep(rate) # set a global time equivalent parameter
 
-def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, control=False, sim_time=10, rate=0.1):
+### MERGE THIS WITH simulate ###
+def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, control=0, sim_time=10, rate=0.1):
     """
     visualize a simulation streaming from an archive
     sim_time: minutes to simulate
@@ -780,7 +787,14 @@ def plot_sim(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
         clock += 1
         time.sleep(rate)
 
-    return bunch
+    hold = eval_hold(active_bus)
+    hw_avg, hw_std = eval_headway(stops)
+    report = {'bunch':bunch,
+              'sumHold':hold,
+              'avgHeadway':hw_avg,
+              'stdHeadway':hw_std}
+
+    return report ##### adjust how to record this when a simulator grand class is built #####
 
 ##############
 # SIMULATION #
@@ -797,7 +811,7 @@ def infer(filename, direction, live_bus, stops, links, stop_pos, runtime=60):
     for i in np.arange(runtime * 2):
         stream_next(data, live_bus, stops, links, stop_pos)
 
-def simulate(filename, direction, live_bus, active_bus, stops, links, stop_pos, control=False, sim_time=10):
+def simulate(filename, direction, live_bus, active_bus, stops, links, stop_pos, control=0, sim_time=10):
     """
     simply simulate to get data (i.e., plot_sim w/o plot)
     sim_time: minutes to simulate
@@ -822,7 +836,13 @@ def simulate(filename, direction, live_bus, active_bus, stops, links, stop_pos, 
 
         clock += 1
 
-    report = {'bunch':bunch}
+    hold = eval_hold(active_bus)
+    hw_avg, hw_std = eval_headway(stops)
+    report = {'bunch':bunch,
+              'sumHold':hold,
+              'avgHeadway':hw_avg,
+              'stdHeadway':hw_std}
+
     return report ##### adjust how to record this when a simulator grand class is built #####
 
 def update_sim_stops(active_bus, stops):
@@ -861,6 +881,93 @@ def count_bunch(bus_dict, threshold=300):
     result = sum(np.abs(np.diff(bus_pos)) < threshold)
 
     return result
+
+def eval_hold(bus_dict):
+    all_log = [bus.log_hold for bus in bus_dict.values()]
+    all_hold = [hold for log in all_log for hold in log if hold != None]
+    total_hold = sum(all_hold)
+    
+    return total_hold
+
+def eval_headway(stop_dict):
+    all_log = [stop.sim_headway for stop in stop_dict.values()]
+    all_hw = [hw for log in all_log for hw in log if hw != None]
+    mean_hw = np.mean(all_hw) / 60 # minutes
+    std_hw = np.std(all_hw) / 60 # minutes
+    
+    return mean_hw, std_hw
+
+def sim_report(reports):
+    """
+    merge all simulation reports into a single dataframe
+    reports: a list of sim reports returned by each simulate()
+    """
+    report_df = pd.DataFrame({'bunch':[r['bunch'] for r in reports],
+                              'hold':[r['sumHold'] for r in reports],
+                              'avghw':[r['avgHeadway'] for r in reports],
+                              'stdhw':[r['stdHeadway'] for r in reports]})
+    report_df = report_df[['bunch', 'hold', 'avghw', 'stdhw']]
+    # report_df.index = []
+    
+    return report_df
+
+def eval_sim(data, active_bus, direction):
+    """
+    evaluates how well the simulation is compared to the original archive
+    returns distance (meter) MSE per ping pair (between data and simulation at the same timestamp)
+    data: archive data for simulation
+    active_bus: SimBus dictionary from simulation
+    direction: the route direction that the simulation is performed
+    """
+    # read data
+    # df = archive_reader(data, dir_ref, start_min, end_min) ##### INCOMPLETE #####
+    df = pd.read_csv(data)
+    df = df[df['DirectionRef'] == direction] # subset direction
+    df = split_trips(df)
+    df = df[df['ProgressStatus'] != 'layover'] # remove layover
+
+    # extract mutual vehicle refs
+    buses1 = set(df['NewVehicleRef'])
+    buses2 = set(active_bus.keys())
+    mutual_ref = buses1.intersection(buses2)
+    
+    # mse from all runs
+    sim_mse = []
+    weights = []
+    
+    # iterate through all vehicles
+    for ref in mutual_ref:
+        time1 = set(map(dateutil.parser.parse, df[df['NewVehicleRef'] == ref]['RecordedAtTime']))
+        time2 = set(active_bus[ref].log_time) ### subset [:-1] as a shortcut to exclude potential terminal records ###
+        mutual_time = list(time1.intersection(time2))
+
+        # extract positions from archive data
+        tmpdf = df[df['NewVehicleRef'] == ref]
+        tlist = list(map(dateutil.parser.parse, tmpdf['RecordedAtTime']))
+        pos1 = [[t, i] for i, t in enumerate(tlist) if t in mutual_time] # extract time and index
+        pos1 = np.transpose(pos1)
+        pos1[1] = tmpdf.iloc[pos1[1],:]['VehDistAlongRoute'] # use index to subset positions
+        pos1 = dict(zip(pos1[0], pos1[1])) # auto-remove duplicate
+        pos1 = np.array(list(pos1.values()))
+        pos1.sort()
+
+        # extract positions from SimBus log
+        pos2 = [[t, active_bus[ref].log_pos[i]] for i, t in enumerate(active_bus[ref].log_time) if t in mutual_time]
+        pos2 = np.transpose(pos2)
+        pos2 = dict(zip(pos2[0], pos2[1])) # auto-remove duplicate
+        pos2 = np.array(list(pos2.values()))
+        pos2.sort()
+
+        # calculate the MSE of individual vehicle
+        err = np.abs(pos1 - pos2)
+        mse = np.mean(err ** 2)
+        sim_mse.append(mse)
+        weights.append(len(err))
+    
+    # calculate overall MSE of the simulation
+    result = np.average(sim_mse, weights=weights)
+    print("MSE of simulated vehicle distance (meter) per ping pair: %.2f"%(result))
+    return result # mse distance (meter) per ping pair (at the same time)
 
 #############
 # ANALYTICS #

@@ -17,7 +17,7 @@ Project affiliated with [BUILT@NYU](https://github.com/BUILTNYU) led by Prof. Jo
 
 `pip install buskit`
 
-current version: [1.0.0.dev6](https://pypi.org/project/buskit/)
+current version: [1.0.0.dev7](https://pypi.org/project/buskit/)
 
 ## Framework
 
@@ -201,6 +201,11 @@ For more examples, see [example](example_busdata.ipynb).
 
 - Major improvement in simulation pipeline
 - Data processing issues: e.g., split trips while streaming
+
+[180719]
+
+- Alpha version of simulator complete
+- PyPI updated: `buskit` ([version 1.0.0.dev7](https://pypi.org/project/buskit/))
 
 ## References
 
