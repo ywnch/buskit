@@ -74,6 +74,8 @@ def stream_bus(apikey, linename, duration=5):
         route reference (e.g., B54)
     duration: integer
         minutes of data to fetch (by 30-second intervals)
+    path: string
+        [CURRENTLY UNAVAILABLE] the path to store the output data
         
     RETURNS
     -------

@@ -586,7 +586,8 @@ class SimBus(object):
         ## self.link = sum(self.pos >= self.stop_pos) - 1
         self.link += 1
         self.next_stop = self.stop_pos[self.link + 1] # new next stop
-        self.speed = self.links[self.link].speed # new link speed
+        ### RANDOMIZED ###
+        self.speed =  max(1.5 * np.random.randn() + self.links[self.link].speed, 1) # new link speed
         self.dwell = 0 # reset dwelling time
         self.hold = 0 # reset holding time
         # self.pax = 0 # update pax onboard
@@ -616,16 +617,17 @@ class SimBus(object):
         if self.headway != None and self.headway < 90:
             ##### ADJUST (REDUCE) DWELL_TIME WHEN HW=0 TO REFLECT BUNCHING #####
             ##### THIS METHOD MAY LEAD TO A TANGLING SPEED UP CYLE !!! #####
-            # pass over prevbus, each share half load
-            dwell = random.choice([0, dwell/3])
+            # pass over prevbus, share partial load, bunching penalization
+            dwell = random.choice([0, dwell*0.3, dwell*1.3])
         else:
             dwell = max(8 * np.random.randn() + dwell, 0)
 
         return dwell
 
-    def calc_hold(self):
+    def calc_hold(self, desired_hw=7):
         """
         This is the algorithm for determining hold time.
+        desired_hw: minutes
         """
         # check if bunching in place
         if self.headway != None and self.headway < 600: # seconds
@@ -637,7 +639,7 @@ class SimBus(object):
                 hold = 60
             # method 2: naive headway
             elif self.control == 2:
-                hold = 600 - self.headway
+                hold = 480 - self.headway
             else:
                 hold = 0
 
@@ -1010,9 +1012,9 @@ def sim_tsd(active_bus, stops, archive_path, dir_ref, start_min=None, end_min=No
         ax.annotate(bus.ref.split("_")[1], (bus.log_time[0], bus.log_pos[0]))
         
     ax.grid()
-    ax.set_xlabel("Timestep (second)", fontsize=14)
+    ax.set_xlabel("Time", fontsize=14)
     ax.set_ylabel("Distance along route (meter)", fontsize=14)
-    ax.set_title("Time-space Diagram of Bus Simulation")
+    ax.set_title("Time-space Diagram of Bus Simulation", fontsize=18)
     
     plt.tight_layout()
     
