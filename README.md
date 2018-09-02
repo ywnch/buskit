@@ -4,8 +4,6 @@
 
 Author: Yuwen Chang (M.S. at NYU CUSP 2018)
 
-Project affiliated with [BUILT@NYU](https://github.com/BUILTNYU) led by Prof. Joseph Chow
-
 ## This toolkit is meant to be…
 
 - A **simple** and **generalized** data pipeline for bus analytics
