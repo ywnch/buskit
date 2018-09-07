@@ -2,7 +2,7 @@
 
 ## A ready-to-use python toolkit for bus data streaming, analytics, and simulation with real-time, historical, and artificial bus trajectory data
 
-Author: Yuwen Chang (M.S. at NYU CUSP 2018)
+Author: Yuwen Chang (Research Engineer @LARC, SMU)
 
 ## This toolkit is meant to be…
 
@@ -81,7 +81,7 @@ For more examples, see [example](example_busdata.ipynb).
 
 ## Workflow
 
-1. Facilitate a data collection pipeline from NYC MTA bus real-time data ([Previous work](https://github.com/BUILTNYU/Monitoring-Bus-Arrivals-for-Headway-Control-Strategies) by Elsa Kong)
+1. Facilitate a data collection pipeline from NYC MTA bus real-time data
 2. Construct a simulation environment in python
 3. Implement a [BB mitigation strategy](https://www.sciencedirect.com/science/article/pii/S1568494616303118)
 4. Evaluate the performance
@@ -204,6 +204,18 @@ For more examples, see [example](example_busdata.ipynb).
 
 - Alpha version of simulator complete
 - PyPI updated: `buskit` ([version 1.0.0.dev7](https://pypi.org/project/buskit/))
+
+## Acknowledgement
+
+The work is inspired by and developed from the following coursework:
+
+- Principle of Urban Informatics (Prof. Federica Bianco @CUSP NYU)
+- Urban Public Transportation (Prof. Joseph Chow @Tandon NYU)
+
+Additional references:
+
+- Check [previous work](https://github.com/BUILTNYU/Monitoring-Bus-Arrivals-for-Headway-Control-Strategies) by Elsa Kong if you intend to map live buses to QGIS
+- [Paul Sohn](https://github.com/pksohn) has a [BB modeling repo](https://github.com/pksohn/Bus-Bunching), which helped a lot when I set up the artificial simulation framework
 
 ## References
 
