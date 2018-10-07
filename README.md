@@ -1,5 +1,6 @@
 # Bus Analytics Toolkit for Bunching Mitigation
 
+## This project is undergoing major review and restructuring.
 ## A ready-to-use python toolkit for bus data streaming, analytics, and simulation with real-time, historical, and artificial bus trajectory data
 
 Author: Yuwen Chang (Research Engineer @LARC, SMU)
